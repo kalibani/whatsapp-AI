@@ -15,6 +15,13 @@ import {
   UploadTextResponse,
   DeleteDocumentResponse,
 } from "@/types/knowledge-base";
+import {
+  RequestQRResponse,
+  GetAccountResponse,
+  ReconnectResponse,
+  ReconnectRequest,
+  DeleteAccountResponse,
+} from "@/types/whatsapp-account";
 
 // Create axios instance with base configuration
 const api = axios.create({
@@ -149,24 +156,35 @@ export const knowledgeBaseApi = {
   },
 };
 
-export const accountApi = {
-  requestQrCode: async () => {
+// WhatsApp Account API endpoints
+export const whatsappAccountApi = {
+  // Request QR Code for new WhatsApp connection
+  requestQrCode: async (): Promise<RequestQRResponse> => {
     const response = await api.post("/v1/wa/request-qr");
     return response.data;
   },
 
-  reconnectAccount: async (id: string) => {
-    const response = await api.post(`/v1/wa/reconnect/${id}`);
+  // Get account status by account ID
+  getAccount: async (accountId: string): Promise<GetAccountResponse> => {
+    const response = await api.get(`/v1/wa/accounts/${accountId}`);
     return response.data;
   },
 
-  deleteAccount: async (id: string) => {
-    const response = await api.delete(`/v1/wa/delete/${id}`);
+  // Reconnect a previously connected WhatsApp account
+  reconnectAccount: async (
+    accountId: string,
+    data?: ReconnectRequest
+  ): Promise<ReconnectResponse> => {
+    const response = await api.post(
+      `/v1/wa/reconnect/${accountId}`,
+      data || {}
+    );
     return response.data;
   },
 
-  getAccount: async (id: string) => {
-    const response = await api.get(`/v1/wa/get/${id}`);
+  // Delete (unlink) a WhatsApp account
+  deleteAccount: async (accountId: string): Promise<DeleteAccountResponse> => {
+    const response = await api.delete(`/v1/wa/account/${accountId}`);
     return response.data;
   },
 };
