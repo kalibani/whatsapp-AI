@@ -9,6 +9,9 @@ import {
   Settings,
   Calendar,
   Smartphone,
+  AlertCircle,
+  Save,
+  RotateCcw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -37,6 +40,25 @@ export default function AgentDetailPage() {
   const [agent, setAgent] = useState<Agent | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Form data for all tabs
+  const [formData, setFormData] = useState({
+    // Agent tab
+    name: "",
+    language: "",
+    system_prompt: "",
+    description: "",
+    // WhatsApp tab
+    whatsapp_connection: {
+      account_id: null as string | null,
+      phone_number: null as string | null,
+    },
+    // Scheduling tab
+    availability_schedule: null as any,
+    // Advanced tab
+    advanced_settings: null as any,
+  });
 
   const fetchAgent = async () => {
     try {
@@ -46,6 +68,7 @@ export default function AgentDetailPage() {
 
       if (response.success) {
         setAgent(response.data);
+        updateFormDataFromAgent(response.data);
       } else {
         setError("Failed to fetch agent details");
       }
@@ -64,6 +87,112 @@ export default function AgentDetailPage() {
       fetchAgent();
     }
   }, [agentId]);
+
+  const handleAgentUpdate = (updatedAgent: Agent) => {
+    setAgent(updatedAgent);
+    // Update form data when agent is updated
+    updateFormDataFromAgent(updatedAgent);
+  };
+
+  // Update form data from agent
+  const updateFormDataFromAgent = (agentData: Agent) => {
+    setFormData({
+      name: agentData.name,
+      language: agentData.language,
+      system_prompt: agentData.system_prompt,
+      description: agentData.description || "",
+      whatsapp_connection: {
+        account_id: agentData.whatsapp_connection?.account_id || null,
+        phone_number: agentData.whatsapp_connection?.phone_number || null,
+      },
+      availability_schedule: agentData.availability_schedule,
+      advanced_settings: agentData.advanced_settings,
+    });
+  };
+
+  // Check if there are unsaved changes
+  const hasChanges = () => {
+    if (!agent) return false;
+
+    return (
+      formData.name !== agent.name ||
+      formData.language !== agent.language ||
+      formData.system_prompt !== agent.system_prompt ||
+      formData.description !== (agent.description || "") ||
+      formData.whatsapp_connection.account_id !==
+        (agent.whatsapp_connection?.account_id || null) ||
+      formData.whatsapp_connection.phone_number !==
+        (agent.whatsapp_connection?.phone_number || null) ||
+      JSON.stringify(formData.availability_schedule) !==
+        JSON.stringify(agent.availability_schedule) ||
+      JSON.stringify(formData.advanced_settings) !==
+        JSON.stringify(agent.advanced_settings)
+    );
+  };
+
+  // Handle form data changes
+  const handleFormDataChange = (field: string, value: any) => {
+    setFormData((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+  };
+
+  // Handle nested form data changes
+  const handleNestedFormDataChange = (
+    parentField: string,
+    childField: string,
+    value: any
+  ) => {
+    setFormData((prev) => ({
+      ...prev,
+      [parentField]: {
+        ...(prev[parentField as keyof typeof prev] as any),
+        [childField]: value,
+      },
+    }));
+  };
+
+  // Reset form data
+  const handleReset = () => {
+    if (agent) {
+      updateFormDataFromAgent(agent);
+    }
+  };
+
+  // Save all changes
+  const handleSave = async () => {
+    if (!agent) return;
+
+    try {
+      setIsSaving(true);
+
+      const updateData = {
+        name: formData.name,
+        language: formData.language,
+        system_prompt: formData.system_prompt,
+        description: formData.description || undefined,
+        whatsapp_connection: formData.whatsapp_connection,
+        availability_schedule: formData.availability_schedule,
+        advanced_settings: formData.advanced_settings,
+      };
+
+      const response = await agentApi.updateAgent(agent.id, updateData);
+
+      if (response.success) {
+        setAgent(response.data);
+        updateFormDataFromAgent(response.data);
+      } else {
+        console.error("Failed to update agent:", response);
+        alert("Failed to update agent");
+      }
+    } catch (error: any) {
+      console.error("Error updating agent:", error);
+      alert(error.response?.data?.error?.message || "Failed to update agent");
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("en-US", {
@@ -194,21 +323,71 @@ export default function AgentDetailPage() {
             </TabsList>
 
             <TabsContent value="agent">
-              <AgentTab agent={agent} onUpdate={setAgent} />
+              <AgentTab
+                agent={agent}
+                formData={{
+                  name: formData.name,
+                  language: formData.language,
+                  system_prompt: formData.system_prompt,
+                  description: formData.description,
+                }}
+                onFormDataChange={handleFormDataChange}
+                onUpdate={handleAgentUpdate}
+              />
             </TabsContent>
 
             <TabsContent value="whatsapp">
-              <WhatsAppTab agent={agent} onUpdate={setAgent} />
+              <WhatsAppTab agent={agent} onUpdate={handleAgentUpdate} />
             </TabsContent>
 
             <TabsContent value="scheduling">
-              <SchedulingTab agent={agent} onUpdate={setAgent} />
+              <SchedulingTab agent={agent} onUpdate={handleAgentUpdate} />
             </TabsContent>
 
             <TabsContent value="advanced">
-              <AdvancedTab agent={agent} onUpdate={setAgent} />
+              <AdvancedTab agent={agent} onUpdate={handleAgentUpdate} />
             </TabsContent>
           </Tabs>
+
+          {/* Floating Save Button */}
+          {hasChanges() && (
+            <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-50 animate-in slide-in-from-bottom-2 duration-300">
+              <div className="rounded-lg border bg-background/95 px-4 py-3 shadow-lg backdrop-blur-sm">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-x-2">
+                  <div className="flex items-center gap-x-2">
+                    <AlertCircle className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm text-muted-foreground">
+                      Unsaved changes
+                    </span>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleReset}
+                      type="button"
+                      className="min-h-[44px] min-w-[44px]"
+                    >
+                      <RotateCcw className="h-4 w-4 mr-1" />
+                      Reset
+                    </Button>
+                    <Button
+                      disabled={isSaving}
+                      type="button"
+                      onClick={handleSave}
+                      className="min-h-[44px] min-w-[88px]"
+                    >
+                      {isSaving && (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      )}
+                      <Save className="h-4 w-4 mr-1" />
+                      Save Changes
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

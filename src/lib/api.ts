@@ -4,7 +4,17 @@ import {
   CreateAgentRequest,
   CreateAgentResponse,
   GetAgentResponse,
+  UpdateAgentRequest,
+  UpdateAgentResponse,
 } from "@/types/agent";
+import {
+  KnowledgeBaseDocumentsResponse,
+  UploadDocumentResponse,
+  UploadDocumentRequest,
+  UploadTextRequest,
+  UploadTextResponse,
+  DeleteDocumentResponse,
+} from "@/types/knowledge-base";
 
 // Create axios instance with base configuration
 const api = axios.create({
@@ -58,14 +68,83 @@ export const agentApi = {
   },
 
   // Update agent
-  updateAgent: async (id: string, agentData: any) => {
-    const response = await api.put(`/v1/wa/agents/${id}`, agentData);
+  updateAgent: async (
+    id: string,
+    agentData: UpdateAgentRequest
+  ): Promise<UpdateAgentResponse> => {
+    const response = await api.patch(`/v1/wa/agents/${id}`, agentData);
     return response.data;
   },
 
   // Delete agent
   deleteAgent: async (id: string) => {
     const response = await api.delete(`/v1/wa/agents/${id}`);
+    return response.data;
+  },
+};
+
+// Knowledge Base API endpoints
+export const knowledgeBaseApi = {
+  // Get list of knowledge base documents
+  getDocuments: async (params?: {
+    page?: number;
+    limit?: number;
+    category?: string;
+    document_type?: string;
+  }): Promise<KnowledgeBaseDocumentsResponse> => {
+    const response = await api.get("/v1/wa/knowledge/documents", { params });
+    return response.data;
+  },
+
+  // Upload document to knowledge base
+  uploadDocument: async (
+    data: UploadDocumentRequest
+  ): Promise<UploadDocumentResponse> => {
+    const formData = new FormData();
+    formData.append("file", data.file);
+    formData.append("title", data.title);
+
+    if (data.description) {
+      formData.append("description", data.description);
+    }
+    if (data.category) {
+      formData.append("category", data.category);
+    }
+    if (data.agent_id) {
+      formData.append("agent_id", data.agent_id);
+    }
+
+    const response = await api.post("/v1/wa/knowledge/upload", formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+    return response.data;
+  },
+
+  // Upload text content to knowledge base
+  uploadText: async (data: UploadTextRequest): Promise<UploadTextResponse> => {
+    const params = data.agent_id ? { agent_id: data.agent_id } : {};
+    const response = await api.post(
+      "/v1/wa/knowledge/upload/text",
+      {
+        title: data.title,
+        content: data.content,
+        description: data.description,
+        category: data.category,
+      },
+      { params }
+    );
+    return response.data;
+  },
+
+  // Delete document from knowledge base
+  deleteDocument: async (
+    documentId: string
+  ): Promise<DeleteDocumentResponse> => {
+    const response = await api.delete(
+      `/v1/wa/knowledge/documents/${documentId}`
+    );
     return response.data;
   },
 };

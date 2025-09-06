@@ -7,6 +7,7 @@ export interface WhatsAppConnection {
 export interface KnowledgeBase {
   id: string;
   name: string;
+  type?: string;
 }
 
 export interface AgentFile {
@@ -116,6 +117,23 @@ export interface CreateAgentResponse {
 }
 
 export interface GetAgentResponse {
+  success: boolean;
+  data: Agent;
+  message: string;
+  meta: ApiMeta;
+}
+
+export interface UpdateAgentRequest {
+  name?: string;
+  language?: string;
+  system_prompt?: string;
+  description?: string;
+  availability_schedule?: AvailabilitySchedule;
+  advanced_settings?: AdvancedSettings;
+  knowledge_base?: KnowledgeBase[];
+}
+
+export interface UpdateAgentResponse {
   success: boolean;
   data: Agent;
   message: string;
