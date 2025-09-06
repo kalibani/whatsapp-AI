@@ -110,7 +110,7 @@ export default function WhatsAppTab({ agent, onUpdate }: WhatsAppTabProps) {
         return;
       }
 
-      wsRef.current = new WebSocket(wsUrl, apiKey);
+      wsRef.current = new WebSocket(wsUrl, [apiKey]);
 
       wsRef.current.onopen = () => {
         console.log("WebSocket connected for status updates");
@@ -132,6 +132,26 @@ export default function WhatsAppTab({ agent, onUpdate }: WhatsAppTabProps) {
                 setIsReconnecting(false);
                 cleanupPolling();
                 fetchAccountStatus();
+              } else if (data.status === "disconnected") {
+                // Handle disconnection
+                setIsConnecting(false);
+                setIsReconnecting(false);
+                cleanupPolling();
+
+                // Update local account status
+                setAccountStatus((prev) =>
+                  prev ? { ...prev, status: "disconnected" } : null
+                );
+
+                // Update agent with disconnected status
+                const updatedAgent = {
+                  ...agent,
+                  whatsapp_connection: {
+                    ...agent.whatsapp_connection!,
+                    status: "disconnected",
+                  },
+                };
+                onUpdate(updatedAgent);
               }
             }
           }
@@ -206,7 +226,7 @@ export default function WhatsAppTab({ agent, onUpdate }: WhatsAppTabProps) {
               ...agent,
               whatsapp_connection: {
                 account_id: response.data.account_id,
-                phone_number: response.data.phone_number,
+                phone_number: response.data.phone_number ?? null,
                 status: response.data.status,
               },
             };
@@ -221,7 +241,7 @@ export default function WhatsAppTab({ agent, onUpdate }: WhatsAppTabProps) {
     };
 
     // Poll every 3 seconds
-    pollingIntervalRef.current = setInterval(poll, 3000);
+    pollingIntervalRef.current = setInterval(poll, 4000);
 
     // Stop polling after 3 minutes
     setTimeout(() => {
@@ -294,7 +314,7 @@ export default function WhatsAppTab({ agent, onUpdate }: WhatsAppTabProps) {
             ...agent,
             whatsapp_connection: {
               account_id: response.data.account_id,
-              phone_number: response.data.phone_number,
+              phone_number: response.data.phone_number ?? null,
               status: response.data.status,
             },
           };
