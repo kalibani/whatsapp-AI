@@ -25,6 +25,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { agentApi } from "@/lib/api";
 import { Agent } from "@/types/agent";
+import { toast } from "sonner";
 
 // Tab Components
 import AgentTab from "@/components/agent-tabs/agent-tab";
@@ -182,13 +183,23 @@ export default function AgentDetailPage() {
       if (response.success) {
         setAgent(response.data);
         updateFormDataFromAgent(response.data);
+
+        toast.success("Agent Updated", {
+          description: "All changes have been saved successfully.",
+        });
       } else {
         console.error("Failed to update agent:", response);
-        alert("Failed to update agent");
+        toast.error("Update Failed", {
+          description: "Failed to update agent. Please try again.",
+        });
       }
     } catch (error: any) {
       console.error("Error updating agent:", error);
-      alert(error.response?.data?.error?.message || "Failed to update agent");
+      toast.error("Update Failed", {
+        description:
+          error.response?.data?.error?.message ||
+          "Failed to update agent. Please try again.",
+      });
     } finally {
       setIsSaving(false);
     }
@@ -300,23 +311,32 @@ export default function AgentDetailPage() {
 
           {/* Tabs */}
           <Tabs defaultValue="agent" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="agent" className="flex items-center gap-2">
+            <TabsList className="grid w-full grid-cols-4 h-10 border border-gray-300">
+              <TabsTrigger
+                value="agent"
+                className="flex items-center gap-2 cursor-pointer"
+              >
                 <Bot className="h-4 w-4" />
                 Agent
               </TabsTrigger>
-              <TabsTrigger value="whatsapp" className="flex items-center gap-2">
+              <TabsTrigger
+                value="whatsapp"
+                className="flex items-center gap-2 cursor-pointer"
+              >
                 <Smartphone className="h-4 w-4" />
                 WhatsApp Connection
               </TabsTrigger>
               <TabsTrigger
                 value="scheduling"
-                className="flex items-center gap-2"
+                className="flex items-center gap-2 cursor-pointer"
               >
                 <Calendar className="h-4 w-4" />
                 Scheduling
               </TabsTrigger>
-              <TabsTrigger value="advanced" className="flex items-center gap-2">
+              <TabsTrigger
+                value="advanced"
+                className="flex items-center gap-2 cursor-pointer"
+              >
                 <Settings className="h-4 w-4" />
                 Advanced Settings
               </TabsTrigger>
@@ -337,11 +357,19 @@ export default function AgentDetailPage() {
             </TabsContent>
 
             <TabsContent value="whatsapp">
-              <WhatsAppTab agent={agent} onUpdate={handleAgentUpdate} />
+              <WhatsAppTab
+                agent={agent}
+                formData={formData}
+                onFormDataChange={handleFormDataChange}
+                onUpdate={handleAgentUpdate}
+              />
             </TabsContent>
 
             <TabsContent value="scheduling">
-              <SchedulingTab agent={agent} onUpdate={handleAgentUpdate} />
+              <SchedulingTab
+                formData={formData}
+                onFormDataChange={handleFormDataChange}
+              />
             </TabsContent>
 
             <TabsContent value="advanced">

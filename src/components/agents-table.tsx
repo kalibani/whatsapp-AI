@@ -70,13 +70,6 @@ export default function AgentsTable() {
   };
 
   const handleCreateAgent = async () => {
-    alert("Create agent button clicked!"); // Debug alert
-    console.log("Create agent clicked");
-    console.log("Environment check:", {
-      apiUrl: process.env.NEXT_PUBLIC_BERRYLABS_API_URL,
-      hasApiKey: !!process.env.NEXT_PUBLIC_BERRYLABS_API_KEY,
-    });
-
     try {
       setCreating(true);
       setError(null);
@@ -90,13 +83,10 @@ export default function AgentsTable() {
         advanced_settings: defaultAgentValues.advanced_settings,
       };
 
-      console.log("Creating agent with data:", createData);
       const response = await agentApi.createAgent(createData);
-      console.log("API response:", response);
 
       if (response.success) {
         // Redirect to agent detail page
-        console.log("Redirecting to agent:", response.data.id);
         router.push(`/agent/${response.data.id}`);
       } else {
         console.error("Create agent failed:", response);
@@ -337,15 +327,15 @@ export default function AgentsTable() {
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-2">
-                        <Button variant="outline" size="sm">
-                          Edit
-                        </Button>
                         <Button
                           variant="outline"
                           size="sm"
                           onClick={() => router.push(`/agent/${agent.id}`)}
                         >
                           View
+                        </Button>
+                        <Button variant="outline" size="sm">
+                          Delete
                         </Button>
                       </div>
                     </TableCell>

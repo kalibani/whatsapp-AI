@@ -21,6 +21,7 @@ import {
   ReconnectResponse,
   ReconnectRequest,
   DeleteAccountResponse,
+  ListAccountsResponse,
 } from "@/types/whatsapp-account";
 
 // Create axios instance with base configuration
@@ -42,7 +43,6 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    console.error("API Error:", error.response?.data || error.message);
     return Promise.reject(error);
   }
 );
@@ -158,6 +158,12 @@ export const knowledgeBaseApi = {
 
 // WhatsApp Account API endpoints
 export const whatsappAccountApi = {
+  // List all WhatsApp accounts
+  listAccounts: async (): Promise<ListAccountsResponse> => {
+    const response = await api.get("/v1/wa/accounts");
+    return response.data;
+  },
+
   // Request QR Code for new WhatsApp connection
   requestQrCode: async (): Promise<RequestQRResponse> => {
     const response = await api.post("/v1/wa/request-qr");

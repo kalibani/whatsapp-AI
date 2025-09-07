@@ -8,6 +8,7 @@ specifiers:
   '@radix-ui/react-navigation-menu': ^1.2.14
   '@radix-ui/react-select': ^2.2.6
   '@radix-ui/react-slot': ^1.2.3
+  '@radix-ui/react-switch': ^1.2.6
   '@radix-ui/react-tabs': ^1.1.13
   '@tailwindcss/postcss': ^4
   '@types/node': ^20
@@ -21,9 +22,11 @@ specifiers:
   eslint-config-next: 15.5.2
   lucide-react: ^0.542.0
   next: 15.5.2
+  next-themes: ^0.4.6
   qrcode: ^1.5.4
   react: 19.1.0
   react-dom: 19.1.0
+  sonner: ^2.0.7
   tailwind-merge: ^3.3.1
   tailwindcss: ^4
   tw-animate-css: ^1.3.8
@@ -36,6 +39,7 @@ dependencies:
   '@radix-ui/react-navigation-menu': 1.2.14_yasigrfinp5yhi75ahcqlw4e3e
   '@radix-ui/react-select': 2.2.6_yasigrfinp5yhi75ahcqlw4e3e
   '@radix-ui/react-slot': 1.2.3_s7g5gyyavvjotk7zcfqskoa3we
+  '@radix-ui/react-switch': 1.2.6_yasigrfinp5yhi75ahcqlw4e3e
   '@radix-ui/react-tabs': 1.1.13_yasigrfinp5yhi75ahcqlw4e3e
   '@types/qrcode': 1.5.5
   axios: 1.11.0
@@ -43,9 +47,11 @@ dependencies:
   clsx: 2.1.1
   lucide-react: 0.542.0_react@19.1.0
   next: 15.5.2_j6k6oay3ugsr56slyfvma2drry
+  next-themes: 0.4.6_j6k6oay3ugsr56slyfvma2drry
   qrcode: 1.5.4
   react: 19.1.0
   react-dom: 19.1.0_react@19.1.0
+  sonner: 2.0.7_j6k6oay3ugsr56slyfvma2drry
   tailwind-merge: 3.3.1
 
 devDependencies:
@@ -1065,6 +1071,32 @@ packages:
       '@radix-ui/react-compose-refs': 1.1.2_s7g5gyyavvjotk7zcfqskoa3we
       '@types/react': 19.1.12
       react: 19.1.0
+    dev: false
+
+  /@radix-ui/react-switch/1.2.6_yasigrfinp5yhi75ahcqlw4e3e:
+    resolution: {integrity: sha512-bByzr1+ep1zk4VubeEVViV592vu2lHE2BZY5OnzehZqOOgogN80+mNtCqPkhn2gklJqOpxWgPoYTSnhBCqpOXQ==}
+    peerDependencies:
+      '@types/react': '*'
+      '@types/react-dom': '*'
+      react: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
+      react-dom: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
+    peerDependenciesMeta:
+      '@types/react':
+        optional: true
+      '@types/react-dom':
+        optional: true
+    dependencies:
+      '@radix-ui/primitive': 1.1.3
+      '@radix-ui/react-compose-refs': 1.1.2_s7g5gyyavvjotk7zcfqskoa3we
+      '@radix-ui/react-context': 1.1.2_s7g5gyyavvjotk7zcfqskoa3we
+      '@radix-ui/react-primitive': 2.1.3_yasigrfinp5yhi75ahcqlw4e3e
+      '@radix-ui/react-use-controllable-state': 1.2.2_s7g5gyyavvjotk7zcfqskoa3we
+      '@radix-ui/react-use-previous': 1.1.1_s7g5gyyavvjotk7zcfqskoa3we
+      '@radix-ui/react-use-size': 1.1.1_s7g5gyyavvjotk7zcfqskoa3we
+      '@types/react': 19.1.12
+      '@types/react-dom': 19.1.9_@types+react@19.1.12
+      react: 19.1.0
+      react-dom: 19.1.0_react@19.1.0
     dev: false
 
   /@radix-ui/react-tabs/1.1.13_yasigrfinp5yhi75ahcqlw4e3e:
@@ -3443,6 +3475,16 @@ packages:
     resolution: {integrity: sha512-OWND8ei3VtNC9h7V60qff3SVobHr996CTwgxubgyQYEpg290h9J0buyECNNJexkFm5sOajh5G116RYA1c8ZMSw==}
     dev: true
 
+  /next-themes/0.4.6_j6k6oay3ugsr56slyfvma2drry:
+    resolution: {integrity: sha512-pZvgD5L0IEvX5/9GWyHMf3m8BKiVQwsCMHfoFosXtXBMnaS0ZnIJ9ST4b4NqLVKDEm8QBxoNNGNaBv2JNF6XNA==}
+    peerDependencies:
+      react: ^16.8 || ^17 || ^18 || ^19 || ^19.0.0-rc
+      react-dom: ^16.8 || ^17 || ^18 || ^19 || ^19.0.0-rc
+    dependencies:
+      react: 19.1.0
+      react-dom: 19.1.0_react@19.1.0
+    dev: false
+
   /next/15.5.2_j6k6oay3ugsr56slyfvma2drry:
     resolution: {integrity: sha512-H8Otr7abj1glFhbGnvUt3gz++0AF1+QoCXEBmd/6aKbfdFwrn0LpA836Ed5+00va/7HQSDD+mOoVhn3tNy3e/Q==}
     engines: {node: ^18.18.0 || ^19.8.0 || >= 20.0.0}
@@ -4015,6 +4057,16 @@ packages:
       is-arrayish: 0.3.2
     dev: false
     optional: true
+
+  /sonner/2.0.7_j6k6oay3ugsr56slyfvma2drry:
+    resolution: {integrity: sha512-W6ZN4p58k8aDKA4XPcx2hpIQXBRAgyiWVkYhT7CvK6D3iAu7xjvVyhQHg2/iaKJZ1XVJ4r7XuwGL+WGEK37i9w==}
+    peerDependencies:
+      react: ^18.0.0 || ^19.0.0 || ^19.0.0-rc
+      react-dom: ^18.0.0 || ^19.0.0 || ^19.0.0-rc
+    dependencies:
+      react: 19.1.0
+      react-dom: 19.1.0_react@19.1.0
+    dev: false
 
   /source-map-js/1.2.1:
     resolution: {integrity: sha512-UXWMKhLOwVKb728IUtQPXxfYU+usdybtUrK/8uGE8CQMvrhOpwvzDBwj0QhSL7MQc7vIsISBG8VQ8+IDQxpfQA==}

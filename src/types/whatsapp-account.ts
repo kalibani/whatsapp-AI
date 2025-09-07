@@ -1,5 +1,10 @@
 // WhatsApp Account API Types based on BerryLabs API documentation
 
+export interface AssociatedAgent {
+  agent_id: string;
+  agent_name: string;
+}
+
 export interface WhatsAppAccount {
   account_id: string;
   phone_number?: string;
@@ -13,6 +18,7 @@ export interface WhatsAppAccount {
   created_at: string;
   updated_at: string;
   last_active?: string;
+  associated_agent?: AssociatedAgent | null;
 }
 
 export interface ExistingAccount {
@@ -87,6 +93,24 @@ export interface DeleteAccountResponse {
     timestamp: string;
     request_id: string;
     api_version: string;
+  };
+}
+
+// List Accounts API Types
+export interface ListAccountsResponse {
+  success: boolean;
+  data: WhatsAppAccount[];
+  meta: {
+    timestamp: string;
+    request_id: string;
+    api_version: string;
+  };
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    has_next: boolean;
+    has_prev: boolean;
   };
 }
 
