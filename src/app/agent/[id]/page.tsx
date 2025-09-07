@@ -9,6 +9,9 @@ import {
   Settings,
   Calendar,
   Smartphone,
+  AlertCircle,
+  Save,
+  RotateCcw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -22,6 +25,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { agentApi } from "@/lib/api";
 import { Agent } from "@/types/agent";
+import { toast } from "sonner";
 
 // Tab Components
 import AgentTab from "@/components/agent-tabs/agent-tab";
@@ -37,25 +41,54 @@ export default function AgentDetailPage() {
   const [agent, setAgent] = useState<Agent | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
 
-  const fetchAgent = async () => {
+  // Form data for all tabs
+  const [formData, setFormData] = useState({
+    // Agent tab
+    name: "",
+    language: "",
+    system_prompt: "",
+    description: "",
+    knowledge_base: [] as any[],
+    // WhatsApp tab
+    whatsapp_connection: {
+      account_id: null as string | null,
+      phone_number: null as string | null,
+    },
+    // Scheduling tab
+    availability_schedule: null as any,
+    // Advanced tab
+    advanced_settings: null as any,
+  });
+
+  const fetchAgent = async (showLoading = true) => {
     try {
-      setLoading(true);
+      if (showLoading) {
+        setLoading(true);
+      }
       setError(null);
       const response = await agentApi.getAgent(agentId);
 
       if (response.success) {
         setAgent(response.data);
+        updateFormDataFromAgent(response.data);
       } else {
-        setError("Failed to fetch agent details");
+        if (showLoading) {
+          setError("Failed to fetch agent details");
+        }
       }
     } catch (err: any) {
       console.error("Error fetching agent:", err);
-      setError(
-        err.response?.data?.error?.message || "Failed to fetch agent details"
-      );
+      if (showLoading) {
+        setError(
+          err.response?.data?.error?.message || "Failed to fetch agent details"
+        );
+      }
     } finally {
-      setLoading(false);
+      if (showLoading) {
+        setLoading(false);
+      }
     }
   };
 
@@ -64,6 +97,126 @@ export default function AgentDetailPage() {
       fetchAgent();
     }
   }, [agentId]);
+
+  const handleAgentUpdate = (updatedAgent: Agent) => {
+    setAgent(updatedAgent);
+    // Update form data when agent is updated
+    updateFormDataFromAgent(updatedAgent);
+  };
+
+  // Update form data from agent
+  const updateFormDataFromAgent = (agentData: Agent) => {
+    setFormData({
+      name: agentData.name,
+      language: agentData.language,
+      system_prompt: agentData.system_prompt,
+      description: agentData.description || "",
+      knowledge_base: agentData.knowledge_base || [],
+      whatsapp_connection: {
+        account_id: agentData.whatsapp_connection?.account_id || null,
+        phone_number: agentData.whatsapp_connection?.phone_number || null,
+      },
+      availability_schedule: agentData.availability_schedule,
+      advanced_settings: agentData.advanced_settings,
+    });
+  };
+
+  // Check if there are unsaved changes
+  const hasChanges = () => {
+    if (!agent) return false;
+
+    return (
+      formData.name !== agent.name ||
+      formData.language !== agent.language ||
+      formData.system_prompt !== agent.system_prompt ||
+      formData.description !== (agent.description || "") ||
+      JSON.stringify(formData.knowledge_base) !==
+        JSON.stringify(agent.knowledge_base || []) ||
+      formData.whatsapp_connection.account_id !==
+        (agent.whatsapp_connection?.account_id || null) ||
+      formData.whatsapp_connection.phone_number !==
+        (agent.whatsapp_connection?.phone_number || null) ||
+      JSON.stringify(formData.availability_schedule) !==
+        JSON.stringify(agent.availability_schedule) ||
+      JSON.stringify(formData.advanced_settings) !==
+        JSON.stringify(agent.advanced_settings)
+    );
+  };
+
+  // Handle form data changes
+  const handleFormDataChange = (field: string, value: any) => {
+    setFormData((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+  };
+
+  // Handle nested form data changes
+  const handleNestedFormDataChange = (
+    parentField: string,
+    childField: string,
+    value: any
+  ) => {
+    setFormData((prev) => ({
+      ...prev,
+      [parentField]: {
+        ...(prev[parentField as keyof typeof prev] as any),
+        [childField]: value,
+      },
+    }));
+  };
+
+  // Reset form data
+  const handleReset = () => {
+    if (agent) {
+      updateFormDataFromAgent(agent);
+    }
+  };
+
+  // Save all changes
+  const handleSave = async () => {
+    if (!agent) return;
+
+    try {
+      setIsSaving(true);
+
+      const updateData = {
+        name: formData.name,
+        language: formData.language,
+        system_prompt: formData.system_prompt,
+        description: formData.description || undefined,
+        knowledge_base: formData.knowledge_base,
+        whatsapp_connection: formData.whatsapp_connection,
+        availability_schedule: formData.availability_schedule,
+        advanced_settings: formData.advanced_settings,
+      };
+
+      const response = await agentApi.updateAgent(agent.id, updateData);
+
+      if (response.success) {
+        // Refetch the agent to get the most up-to-date data
+        await fetchAgent(false);
+
+        toast.success("Agent Updated", {
+          description: "All changes have been saved successfully.",
+        });
+      } else {
+        console.error("Failed to update agent:", response);
+        toast.error("Update Failed", {
+          description: "Failed to update agent. Please try again.",
+        });
+      }
+    } catch (error: any) {
+      console.error("Error updating agent:", error);
+      toast.error("Update Failed", {
+        description:
+          error.response?.data?.error?.message ||
+          "Failed to update agent. Please try again.",
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("en-US", {
@@ -121,7 +274,7 @@ export default function AgentDetailPage() {
                   <ArrowLeft className="h-4 w-4 mr-2" />
                   Back to Agents
                 </Button>
-                <Button onClick={fetchAgent}>Try Again</Button>
+                <Button onClick={() => fetchAgent()}>Try Again</Button>
               </div>
             </div>
           </div>
@@ -171,44 +324,115 @@ export default function AgentDetailPage() {
 
           {/* Tabs */}
           <Tabs defaultValue="agent" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="agent" className="flex items-center gap-2">
+            <TabsList className="grid w-full grid-cols-4 h-10 border border-gray-300">
+              <TabsTrigger
+                value="agent"
+                className="flex items-center gap-2 cursor-pointer"
+              >
                 <Bot className="h-4 w-4" />
                 Agent
               </TabsTrigger>
-              <TabsTrigger value="whatsapp" className="flex items-center gap-2">
+              <TabsTrigger
+                value="whatsapp"
+                className="flex items-center gap-2 cursor-pointer"
+              >
                 <Smartphone className="h-4 w-4" />
                 WhatsApp Connection
               </TabsTrigger>
               <TabsTrigger
                 value="scheduling"
-                className="flex items-center gap-2"
+                className="flex items-center gap-2 cursor-pointer"
               >
                 <Calendar className="h-4 w-4" />
                 Scheduling
               </TabsTrigger>
-              <TabsTrigger value="advanced" className="flex items-center gap-2">
+              <TabsTrigger
+                value="advanced"
+                className="flex items-center gap-2 cursor-pointer"
+              >
                 <Settings className="h-4 w-4" />
                 Advanced Settings
               </TabsTrigger>
             </TabsList>
 
             <TabsContent value="agent">
-              <AgentTab agent={agent} onUpdate={setAgent} />
+              <AgentTab
+                agent={agent}
+                formData={{
+                  name: formData.name,
+                  language: formData.language,
+                  system_prompt: formData.system_prompt,
+                  description: formData.description,
+                  knowledge_base: formData.knowledge_base,
+                }}
+                onFormDataChange={handleFormDataChange}
+                onUpdate={handleAgentUpdate}
+              />
             </TabsContent>
 
             <TabsContent value="whatsapp">
-              <WhatsAppTab agent={agent} onUpdate={setAgent} />
+              <WhatsAppTab
+                agent={agent}
+                formData={formData}
+                onFormDataChange={handleFormDataChange}
+                onUpdate={handleAgentUpdate}
+              />
             </TabsContent>
 
             <TabsContent value="scheduling">
-              <SchedulingTab agent={agent} onUpdate={setAgent} />
+              <SchedulingTab
+                formData={formData}
+                onFormDataChange={handleFormDataChange}
+              />
             </TabsContent>
 
             <TabsContent value="advanced">
-              <AdvancedTab agent={agent} onUpdate={setAgent} />
+              <AdvancedTab
+                formData={formData}
+                onFormDataChange={handleFormDataChange}
+              />
             </TabsContent>
           </Tabs>
+
+          {/* Floating Save Button */}
+          {hasChanges() && (
+            <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-50 animate-in slide-in-from-bottom-2 duration-300">
+              <div className="rounded-lg border bg-background/95 px-4 py-3 shadow-lg backdrop-blur-sm">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-x-2">
+                  <div className="flex items-center gap-x-2">
+                    <AlertCircle className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm text-muted-foreground">
+                      Unsaved changes
+                    </span>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleReset}
+                      type="button"
+                      className="min-h-[44px] min-w-[44px]"
+                    >
+                      <RotateCcw className="h-4 w-4 mr-1" />
+                      Reset
+                    </Button>
+                    <Button
+                      disabled={isSaving}
+                      type="button"
+                      onClick={handleSave}
+                      className="min-h-[44px] min-w-[88px]"
+                    >
+                      {isSaving && (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      )}
+                      <Save className="h-4 w-4 mr-1" />
+                      Save Changes
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

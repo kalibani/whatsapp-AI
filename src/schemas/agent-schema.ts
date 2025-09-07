@@ -217,8 +217,9 @@ export const extractFileReferences = (systemPrompt: string): string[] => {
 // Main agent schema
 export const agentSchema = z.object({
   name: z.string().min(1, "Agent name is required"),
-  agent_id: z.string().optional(),
+
   language: z.enum(["en", "id"]).default("id"),
+  description: z.string().min(1, "Description is required"),
   system_prompt: z.string().min(1, "System prompt is required"),
 
   // WhatsApp connection settings
@@ -277,6 +278,7 @@ export type AgentSchema = z.infer<typeof agentSchema>;
 export const defaultAgentValues: AgentSchema = {
   name: "Agen WhatsApp Baru",
   language: "id",
+  description: "Deskripsi Agent WhatsApp Baru",
   system_prompt:
     "Anda adalah asisten WhatsApp yang membantu memberikan dukungan pelanggan.",
   whatsapp_connection: {
