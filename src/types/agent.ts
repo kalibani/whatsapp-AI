@@ -12,12 +12,18 @@ export interface KnowledgeBase {
 
 export interface AgentFile {
   id: string;
+  file_id: string;
   file_reference: string;
   name: string;
   description: string;
+  file_url: string;
   file_type: string;
-  usage_context: string;
   file_size: number;
+  real_name: string;
+  usage_context: string;
+  status: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface ToolApiSchema {
@@ -131,6 +137,7 @@ export interface UpdateAgentRequest {
   availability_schedule?: AvailabilitySchedule;
   advanced_settings?: AdvancedSettings;
   knowledge_base?: KnowledgeBase[];
+  files?: AgentFile[];
 }
 
 export interface UpdateAgentResponse {

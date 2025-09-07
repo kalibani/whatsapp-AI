@@ -51,6 +51,7 @@ export default function AgentDetailPage() {
     system_prompt: "",
     description: "",
     knowledge_base: [] as any[],
+    files: [] as any[],
     // WhatsApp tab
     whatsapp_connection: {
       account_id: null as string | null,
@@ -112,6 +113,7 @@ export default function AgentDetailPage() {
       system_prompt: agentData.system_prompt,
       description: agentData.description || "",
       knowledge_base: agentData.knowledge_base || [],
+      files: agentData.files || [],
       whatsapp_connection: {
         account_id: agentData.whatsapp_connection?.account_id || null,
         phone_number: agentData.whatsapp_connection?.phone_number || null,
@@ -132,6 +134,7 @@ export default function AgentDetailPage() {
       formData.description !== (agent.description || "") ||
       JSON.stringify(formData.knowledge_base) !==
         JSON.stringify(agent.knowledge_base || []) ||
+      JSON.stringify(formData.files) !== JSON.stringify(agent.files || []) ||
       formData.whatsapp_connection.account_id !==
         (agent.whatsapp_connection?.account_id || null) ||
       formData.whatsapp_connection.phone_number !==
@@ -186,6 +189,7 @@ export default function AgentDetailPage() {
         system_prompt: formData.system_prompt,
         description: formData.description || undefined,
         knowledge_base: formData.knowledge_base,
+        files: formData.files,
         whatsapp_connection: formData.whatsapp_connection,
         availability_schedule: formData.availability_schedule,
         advanced_settings: formData.advanced_settings,
@@ -364,6 +368,7 @@ export default function AgentDetailPage() {
                   system_prompt: formData.system_prompt,
                   description: formData.description,
                   knowledge_base: formData.knowledge_base,
+                  files: formData.files,
                 }}
                 onFormDataChange={handleFormDataChange}
                 onUpdate={handleAgentUpdate}

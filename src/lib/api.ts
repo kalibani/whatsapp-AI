@@ -23,6 +23,15 @@ import {
   DeleteAccountResponse,
   ListAccountsResponse,
 } from "@/types/whatsapp-account";
+import {
+  ListFilesResponse,
+  UploadFileRequest,
+  UploadFileResponse,
+  AssociateFileRequest,
+  AssociateFileResponse,
+  RemoveFileAssociationResponse,
+  DeleteFileResponse,
+} from "@/types/files";
 
 // Create axios instance with base configuration
 const api = axios.create({
@@ -190,6 +199,69 @@ export const whatsappAccountApi = {
   // Delete (unlink) a WhatsApp account
   deleteAccount: async (accountId: string): Promise<DeleteAccountResponse> => {
     const response = await api.delete(`/v1/wa/account/${accountId}`);
+    return response.data;
+  },
+};
+
+// Files API endpoints
+export const filesApi = {
+  // List all client files
+  listFiles: async (params?: {
+    search?: string;
+    file_type?: string;
+    usage_context?: string;
+    page?: number;
+    limit?: number;
+  }): Promise<ListFilesResponse> => {
+    const response = await api.get("/v1/wa/client-files", { params });
+    return response.data;
+  },
+
+  // Upload file
+  uploadFile: async (data: UploadFileRequest): Promise<UploadFileResponse> => {
+    const formData = new FormData();
+    formData.append("file", data.file);
+    formData.append("name", data.name);
+
+    if (data.description) {
+      formData.append("description", data.description);
+    }
+    if (data.usage_context) {
+      formData.append("usage_context", data.usage_context);
+    }
+
+    const response = await api.post("/v1/wa/client-files/upload", formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+    return response.data;
+  },
+
+  // Associate file with agent
+  associateFile: async (
+    agentId: string,
+    data: AssociateFileRequest
+  ): Promise<AssociateFileResponse> => {
+    const response = await api.post(`/v1/wa/agents/${agentId}/files`, data);
+
+    return response.data;
+  },
+
+  // Remove file association from agent
+  removeFileAssociation: async (
+    agentId: string,
+    fileId: string
+  ): Promise<RemoveFileAssociationResponse> => {
+    const response = await api.delete(
+      `/v1/wa/agents/${agentId}/files/${fileId}`
+    );
+    return response.data;
+  },
+
+  // Delete file permanently
+  deleteFile: async (fileId: string): Promise<DeleteFileResponse> => {
+    const response = await api.delete(`/v1/wa/client-files/${fileId}`);
     return response.data;
   },
 };
