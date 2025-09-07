@@ -1,7 +1,15 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Plus, Bot, Phone, Calendar, Loader2 } from "lucide-react";
+import {
+  Plus,
+  Bot,
+  Phone,
+  Calendar,
+  Loader2,
+  Trash2,
+  AlertTriangle,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -19,6 +27,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { agentApi } from "@/lib/api";
 import { Agent, AgentsResponse } from "@/types/agent";
 import { defaultAgentValues } from "@/schemas/agent-schema";
@@ -30,6 +45,9 @@ export default function AgentsTable() {
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [agentToDelete, setAgentToDelete] = useState<Agent | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const [pagination, setPagination] = useState({
     page: 1,
     limit: 10,
@@ -103,6 +121,56 @@ export default function AgentsTable() {
     } finally {
       setCreating(false);
     }
+  };
+
+  const handleShowDeleteDialog = (agent: Agent) => {
+    setAgentToDelete(agent);
+    setShowDeleteDialog(true);
+  };
+
+  const handleDeleteAgent = async () => {
+    if (!agentToDelete) return;
+
+    try {
+      setDeleting(true);
+      setError(null);
+
+      const response = await agentApi.deleteAgent(agentToDelete.id);
+
+      if (response.success) {
+        // Remove the deleted agent from the list
+        setAgents(agents.filter((agent) => agent.id !== agentToDelete.id));
+
+        // Update pagination if needed
+        const newTotal = pagination.total - 1;
+        setPagination((prev) => ({
+          ...prev,
+          total: newTotal,
+        }));
+
+        // Close dialog and reset state
+        setShowDeleteDialog(false);
+        setAgentToDelete(null);
+
+        // If this was the last agent on the current page and we're not on page 1,
+        // go to the previous page
+        if (agents.length === 1 && pagination.page > 1) {
+          fetchAgents(pagination.page - 1, pagination.limit);
+        }
+      } else {
+        setError("Failed to delete agent");
+      }
+    } catch (err: any) {
+      console.error("Error deleting agent:", err);
+      setError(err.response?.data?.error?.message || "Failed to delete agent");
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const handleCancelDelete = () => {
+    setShowDeleteDialog(false);
+    setAgentToDelete(null);
   };
 
   const formatDate = (dateString: string) => {
@@ -334,7 +402,13 @@ export default function AgentsTable() {
                         >
                           View
                         </Button>
-                        <Button variant="outline" size="sm">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-red-600 hover:bg-red-50 hover:text-red-700"
+                          onClick={() => handleShowDeleteDialog(agent)}
+                        >
+                          <Trash2 className="h-4 w-4 mr-1" />
                           Delete
                         </Button>
                       </div>
@@ -376,6 +450,87 @@ export default function AgentsTable() {
           </>
         )}
       </CardContent>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-red-600" />
+              Delete Agent
+            </DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this agent? This action cannot be
+              undone.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            {agentToDelete && (
+              <div className="p-4 bg-gray-50 border rounded-lg">
+                <div className="font-medium text-lg mb-2">
+                  {agentToDelete.name}
+                </div>
+                <div className="text-sm text-gray-600 space-y-1">
+                  <div>Language: {agentToDelete.language.toUpperCase()}</div>
+                  <div>
+                    WhatsApp Status:{" "}
+                    {agentToDelete.whatsapp_connection?.status ||
+                      "disconnected"}
+                  </div>
+                  {agentToDelete.whatsapp_connection?.phone_number && (
+                    <div>
+                      Phone: {agentToDelete.whatsapp_connection.phone_number}
+                    </div>
+                  )}
+                  <div>Tools: {agentToDelete.tools.length}</div>
+                  <div>Created: {formatDate(agentToDelete.created_at)}</div>
+                </div>
+              </div>
+            )}
+
+            <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-red-800 text-sm">
+                <strong>Warning:</strong> Deleting this agent will:
+                <br />
+                • Permanently remove the agent and all its configurations
+                <br />
+                • Disconnect any associated WhatsApp connection
+                <br />
+                • Remove all associated knowledge base documents
+                <br />• Delete all conversation history and data
+              </p>
+            </div>
+
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="outline"
+                onClick={handleCancelDelete}
+                disabled={deleting}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={handleDeleteAgent}
+                disabled={deleting}
+              >
+                {deleting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Deleting...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Delete Agent
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
