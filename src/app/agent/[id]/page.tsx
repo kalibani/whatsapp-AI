@@ -50,6 +50,7 @@ export default function AgentDetailPage() {
     language: "",
     system_prompt: "",
     description: "",
+    knowledge_base: [] as any[],
     // WhatsApp tab
     whatsapp_connection: {
       account_id: null as string | null,
@@ -61,9 +62,11 @@ export default function AgentDetailPage() {
     advanced_settings: null as any,
   });
 
-  const fetchAgent = async () => {
+  const fetchAgent = async (showLoading = true) => {
     try {
-      setLoading(true);
+      if (showLoading) {
+        setLoading(true);
+      }
       setError(null);
       const response = await agentApi.getAgent(agentId);
 
@@ -71,15 +74,21 @@ export default function AgentDetailPage() {
         setAgent(response.data);
         updateFormDataFromAgent(response.data);
       } else {
-        setError("Failed to fetch agent details");
+        if (showLoading) {
+          setError("Failed to fetch agent details");
+        }
       }
     } catch (err: any) {
       console.error("Error fetching agent:", err);
-      setError(
-        err.response?.data?.error?.message || "Failed to fetch agent details"
-      );
+      if (showLoading) {
+        setError(
+          err.response?.data?.error?.message || "Failed to fetch agent details"
+        );
+      }
     } finally {
-      setLoading(false);
+      if (showLoading) {
+        setLoading(false);
+      }
     }
   };
 
@@ -102,6 +111,7 @@ export default function AgentDetailPage() {
       language: agentData.language,
       system_prompt: agentData.system_prompt,
       description: agentData.description || "",
+      knowledge_base: agentData.knowledge_base || [],
       whatsapp_connection: {
         account_id: agentData.whatsapp_connection?.account_id || null,
         phone_number: agentData.whatsapp_connection?.phone_number || null,
@@ -120,6 +130,8 @@ export default function AgentDetailPage() {
       formData.language !== agent.language ||
       formData.system_prompt !== agent.system_prompt ||
       formData.description !== (agent.description || "") ||
+      JSON.stringify(formData.knowledge_base) !==
+        JSON.stringify(agent.knowledge_base || []) ||
       formData.whatsapp_connection.account_id !==
         (agent.whatsapp_connection?.account_id || null) ||
       formData.whatsapp_connection.phone_number !==
@@ -173,6 +185,7 @@ export default function AgentDetailPage() {
         language: formData.language,
         system_prompt: formData.system_prompt,
         description: formData.description || undefined,
+        knowledge_base: formData.knowledge_base,
         whatsapp_connection: formData.whatsapp_connection,
         availability_schedule: formData.availability_schedule,
         advanced_settings: formData.advanced_settings,
@@ -181,8 +194,8 @@ export default function AgentDetailPage() {
       const response = await agentApi.updateAgent(agent.id, updateData);
 
       if (response.success) {
-        setAgent(response.data);
-        updateFormDataFromAgent(response.data);
+        // Refetch the agent to get the most up-to-date data
+        await fetchAgent(false);
 
         toast.success("Agent Updated", {
           description: "All changes have been saved successfully.",
@@ -261,7 +274,7 @@ export default function AgentDetailPage() {
                   <ArrowLeft className="h-4 w-4 mr-2" />
                   Back to Agents
                 </Button>
-                <Button onClick={fetchAgent}>Try Again</Button>
+                <Button onClick={() => fetchAgent()}>Try Again</Button>
               </div>
             </div>
           </div>
@@ -350,6 +363,7 @@ export default function AgentDetailPage() {
                   language: formData.language,
                   system_prompt: formData.system_prompt,
                   description: formData.description,
+                  knowledge_base: formData.knowledge_base,
                 }}
                 onFormDataChange={handleFormDataChange}
                 onUpdate={handleAgentUpdate}

@@ -24,7 +24,7 @@ import { knowledgeBaseApi } from "@/lib/api";
 interface KnowledgeBaseTextModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onUploadSuccess: () => void;
+  onUploadSuccess: (uploadedDoc?: any) => void;
   agentId?: string;
 }
 
@@ -87,7 +87,7 @@ export default function KnowledgeBaseTextModal({
       const response = await knowledgeBaseApi.uploadText(uploadData);
 
       if (response.success) {
-        onUploadSuccess();
+        onUploadSuccess(response.data);
         handleClose();
       } else {
         setError("Upload failed. Please try again.");

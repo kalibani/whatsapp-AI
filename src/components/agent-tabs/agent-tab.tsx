@@ -61,8 +61,9 @@ interface AgentTabProps {
     language: string;
     system_prompt: string;
     description: string;
+    knowledge_base: any[];
   };
-  onFormDataChange: (field: string, value: string) => void;
+  onFormDataChange: (field: string, value: any) => void;
   onUpdate: (agent: Agent) => void;
 }
 
@@ -98,27 +99,47 @@ export default function AgentTab({
     }
   };
 
-  const handleDeleteKnowledgeBase = async (docId: string) => {
-    if (!confirm("Are you sure you want to delete this document?")) {
+  const handleRemoveFromAgent = (docId: string) => {
+    if (
+      !confirm("Are you sure you want to remove this document from the agent?")
+    ) {
+      return;
+    }
+
+    try {
+      // Remove from formData knowledge base (deselect from agent)
+      const updatedKnowledgeBase = formData.knowledge_base.filter(
+        (kb) => kb.id !== docId
+      );
+
+      // Update formData instead of making API call
+      onFormDataChange("knowledge_base", updatedKnowledgeBase);
+    } catch (error: any) {
+      console.error("Error removing document from agent:", error);
+      alert("Failed to remove document from agent");
+    }
+  };
+
+  const handleDeleteFromDatabase = async (docId: string, docName: string) => {
+    if (
+      !confirm(
+        `Are you sure you want to permanently delete "${docName}" from the knowledge base? This action cannot be undone.`
+      )
+    ) {
       return;
     }
 
     try {
       const response = await knowledgeBaseApi.deleteDocument(docId);
       if (response.success) {
-        // Remove from agent's knowledge base
-        const updatedKnowledgeBase =
-          agent.knowledge_base?.filter((kb) => kb.id !== docId) || [];
-        const updateData = {
-          knowledge_base: updatedKnowledgeBase,
-        };
+        // Remove from formData if it was selected
+        const updatedKnowledgeBase = formData.knowledge_base.filter(
+          (kb) => kb.id !== docId
+        );
+        onFormDataChange("knowledge_base", updatedKnowledgeBase);
 
-        const updateResponse = await agentApi.updateAgent(agent.id, updateData);
-        if (updateResponse.success) {
-          onUpdate(updateResponse.data);
-          // Refresh knowledge base list
-          fetchKnowledgeBaseDocs();
-        }
+        // Refresh knowledge base list
+        fetchKnowledgeBaseDocs();
       }
     } catch (error: any) {
       console.error("Error deleting document:", error);
@@ -128,52 +149,98 @@ export default function AgentTab({
     }
   };
 
-  const handleUploadSuccess = () => {
-    // Refresh knowledge base list
+  const handleUploadSuccess = (uploadedDoc?: any) => {
+    // Refresh knowledge base list so new document appears in library
     fetchKnowledgeBaseDocs();
+
+    // If document details are provided, add to selected knowledge base
+    if (uploadedDoc) {
+      const newKnowledgeBaseItem = {
+        id: uploadedDoc.id,
+        name: uploadedDoc.title,
+        type:
+          uploadedDoc.document_type === "text"
+            ? "text"
+            : uploadedDoc.document_type === "pdf"
+            ? "pdf"
+            : "document",
+        description: uploadedDoc.description || "",
+      };
+
+      const updatedKnowledgeBase = [
+        ...(formData.knowledge_base || []),
+        newKnowledgeBaseItem,
+      ];
+
+      onFormDataChange("knowledge_base", updatedKnowledgeBase);
+    }
+
+    // Close the modal
+    setShowUploadModal(false);
   };
 
-  const handleTextUploadSuccess = () => {
-    // Refresh knowledge base list
+  const handleTextUploadSuccess = (uploadedDoc?: any) => {
+    // Refresh knowledge base list so new document appears in library
     fetchKnowledgeBaseDocs();
+
+    // If document details are provided, add to selected knowledge base
+    if (uploadedDoc) {
+      const newKnowledgeBaseItem = {
+        id: uploadedDoc.id,
+        name: uploadedDoc.title,
+        type: "text", // Text uploads are always type 'text'
+        description: uploadedDoc.description || "",
+      };
+
+      const updatedKnowledgeBase = [
+        ...(formData.knowledge_base || []),
+        newKnowledgeBaseItem,
+      ];
+
+      onFormDataChange("knowledge_base", updatedKnowledgeBase);
+    }
+
+    // Close the modal
+    setShowTextModal(false);
   };
 
-  const handleAddToAgent = async (documentId: string, documentName: string) => {
+  const handleAddToAgent = (documentId: string, documentName: string) => {
     try {
       setAddingToAgent(documentId);
 
-      // Add document to agent's knowledge base
+      // Find document details to get the correct type
+      const docDetails = knowledgeBaseDocs.find((doc) => doc.id === documentId);
+      const docType =
+        docDetails?.document_type === "text"
+          ? "text"
+          : docDetails?.document_type === "pdf"
+          ? "pdf"
+          : "document";
+
+      // Add document to formData knowledge base (with id as per API spec)
       const updatedKnowledgeBase = [
-        ...(agent.knowledge_base || []),
+        ...(formData.knowledge_base || []),
         {
           id: documentId,
           name: documentName,
-          type: "document",
+          type: docType,
+          description: docDetails?.description || "",
         },
       ];
 
-      const updateData = {
-        knowledge_base: updatedKnowledgeBase,
-      };
-
-      const updateResponse = await agentApi.updateAgent(agent.id, updateData);
-      if (updateResponse.success) {
-        onUpdate(updateResponse.data);
-      }
+      // Update formData instead of making API call
+      onFormDataChange("knowledge_base", updatedKnowledgeBase);
     } catch (error: any) {
       console.error("Error adding document to agent:", error);
-      alert(
-        error.response?.data?.error?.message ||
-          "Failed to add document to agent"
-      );
+      alert("Failed to add document to agent");
     } finally {
       setAddingToAgent(null);
     }
   };
 
-  // Check if document is already assigned to agent
+  // Check if document is already assigned to agent (check by id in formData)
   const isDocumentAssigned = (docId: string) => {
-    return agent.knowledge_base?.some((kb) => kb.id === docId) || false;
+    return formData.knowledge_base?.some((kb) => kb.id === docId) || false;
   };
 
   // Filter documents to show only unassigned ones in library
@@ -302,7 +369,8 @@ export default function AgentTab({
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-80">
                   <DropdownMenuLabel>
-                    Document Library ({unassignedDocuments.length} available)
+                    Document Library ({knowledgeBaseDocs.length} total,{" "}
+                    {unassignedDocuments.length} available)
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   {loadingKnowledgeBase ? (
@@ -310,52 +378,80 @@ export default function AgentTab({
                       <Loader2 className="h-4 w-4 animate-spin mr-2" />
                       <span className="text-sm">Loading...</span>
                     </div>
-                  ) : unassignedDocuments.length > 0 ? (
+                  ) : knowledgeBaseDocs.length > 0 ? (
                     <div className="max-h-64 overflow-y-auto">
-                      {unassignedDocuments.map((doc) => (
-                        <DropdownMenuItem
-                          key={doc.id}
-                          className="flex flex-col items-start gap-1 p-3 cursor-pointer"
-                          disabled={
-                            doc.status === "processing" ||
-                            addingToAgent === doc.id
-                          }
-                          onClick={() => handleAddToAgent(doc.id, doc.title)}
-                        >
-                          <div className="flex items-center gap-2 w-full">
-                            <FileText className="h-4 w-4 text-blue-600 flex-shrink-0" />
-                            <span className="font-medium truncate flex-1">
-                              {doc.title}
-                            </span>
-                            <span
-                              className={`text-xs px-2 py-1 rounded-full flex-shrink-0 ${
-                                doc.status === "completed"
-                                  ? "bg-green-100 text-green-800"
-                                  : doc.status === "processing"
-                                  ? "bg-yellow-100 text-yellow-800"
-                                  : "bg-red-100 text-red-800"
-                              }`}
-                            >
-                              {doc.status}
-                            </span>
-                          </div>
-                          <div className="text-xs text-gray-500 w-full">
-                            {doc.document_type}
-                            {doc.category && ` • ${doc.category}`}
-                          </div>
-                          {doc.description && (
-                            <div className="text-xs text-gray-400 w-full truncate">
-                              {doc.description}
+                      {knowledgeBaseDocs.map((doc) => {
+                        const isSelected = isDocumentAssigned(doc.id);
+                        return (
+                          <DropdownMenuItem
+                            key={doc.id}
+                            className={`flex flex-col items-start gap-1 p-3 cursor-pointer ${
+                              isSelected
+                                ? "bg-blue-50 border-l-4 border-blue-400"
+                                : ""
+                            }`}
+                            disabled={
+                              doc.status === "processing" ||
+                              addingToAgent === doc.id ||
+                              isSelected
+                            }
+                            onClick={() =>
+                              !isSelected && handleAddToAgent(doc.id, doc.title)
+                            }
+                          >
+                            <div className="flex items-center gap-2 w-full">
+                              <FileText className="h-4 w-4 text-blue-600 flex-shrink-0" />
+                              <span className="font-medium truncate flex-1">
+                                {doc.title}
+                              </span>
+                              <div className="flex items-center gap-1">
+                                {isSelected && (
+                                  <span className="text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-800 flex-shrink-0">
+                                    Selected
+                                  </span>
+                                )}
+                                <span
+                                  className={`text-xs px-2 py-1 rounded-full flex-shrink-0 ${
+                                    doc.status === "completed"
+                                      ? "bg-green-100 text-green-800"
+                                      : doc.status === "processing"
+                                      ? "bg-yellow-100 text-yellow-800"
+                                      : "bg-red-100 text-red-800"
+                                  }`}
+                                >
+                                  {doc.status}
+                                </span>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 w-6 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDeleteFromDatabase(doc.id, doc.title);
+                                  }}
+                                >
+                                  <Trash2 className="h-3 w-3" />
+                                </Button>
+                              </div>
                             </div>
-                          )}
-                          {addingToAgent === doc.id && (
-                            <div className="flex items-center gap-1 text-xs text-blue-600">
-                              <Loader2 className="h-3 w-3 animate-spin" />
-                              Adding...
+                            <div className="text-xs text-gray-500 w-full">
+                              {doc.document_type}
+                              {doc.category && ` • ${doc.category}`}
                             </div>
-                          )}
-                        </DropdownMenuItem>
-                      ))}
+                            {doc.description && (
+                              <div className="text-xs text-gray-400 w-full truncate">
+                                {doc.description}
+                              </div>
+                            )}
+                            {addingToAgent === doc.id && (
+                              <div className="flex items-center gap-1 text-xs text-blue-600">
+                                <Loader2 className="h-3 w-3 animate-spin" />
+                                Adding...
+                              </div>
+                            )}
+                          </DropdownMenuItem>
+                        );
+                      })}
                     </div>
                   ) : (
                     <div className="text-center py-4 text-gray-500">
@@ -377,10 +473,10 @@ export default function AgentTab({
               <Loader2 className="h-6 w-6 animate-spin mr-2" />
               <span>Loading knowledge base...</span>
             </div>
-          ) : agent.knowledge_base && agent.knowledge_base.length > 0 ? (
+          ) : formData.knowledge_base && formData.knowledge_base.length > 0 ? (
             <div className="space-y-3">
-              {agent.knowledge_base.map((kb, index) => {
-                // Find additional details from knowledge base docs
+              {formData.knowledge_base.map((kb, index) => {
+                // Find additional details from knowledge base docs by id
                 const docDetails = knowledgeBaseDocs.find(
                   (doc) => doc.id === kb.id
                 );
@@ -415,9 +511,9 @@ export default function AgentTab({
                         {docDetails?.document_type &&
                           ` • Format: ${docDetails.document_type}`}
                       </div>
-                      {docDetails?.description && (
+                      {(kb.description || docDetails?.description) && (
                         <div className="text-xs text-gray-400 mt-1">
-                          {docDetails.description}
+                          {kb.description || docDetails?.description}
                         </div>
                       )}
                     </div>
@@ -425,8 +521,9 @@ export default function AgentTab({
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => handleDeleteKnowledgeBase(kb.id)}
+                        onClick={() => handleRemoveFromAgent(kb.id)}
                         className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                        title="Remove from agent (deselect)"
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -598,14 +695,12 @@ export default function AgentTab({
         isOpen={showUploadModal}
         onClose={() => setShowUploadModal(false)}
         onUploadSuccess={handleUploadSuccess}
-        agentId={agent.id}
       />
 
       <KnowledgeBaseTextModal
         isOpen={showTextModal}
         onClose={() => setShowTextModal(false)}
         onUploadSuccess={handleTextUploadSuccess}
-        agentId={agent.id}
       />
     </div>
   );

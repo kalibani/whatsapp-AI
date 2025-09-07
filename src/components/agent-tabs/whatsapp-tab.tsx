@@ -237,6 +237,7 @@ export default function WhatsAppTab({
 
   const connectWebSocket = () => {
     try {
+      // see https://docs.berrylabs.io/docs/api/wa-agent/websockets/status-websocket for more details
       const wsUrl = `wss://api.berrylabs.io/wa/ws/status`;
       const apiKey = process.env.NEXT_PUBLIC_BERRYLABS_API_KEY;
 

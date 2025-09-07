@@ -1,7 +1,9 @@
 {
   "name": "whatsapp-ai",
+  "author": "BerryLabs Technologies Private Limited",
   "version": "0.1.0",
   "private": true,
+  "license": "BerryLabs Technologies Private Limited",
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build --turbopack",
