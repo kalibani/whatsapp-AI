@@ -373,7 +373,10 @@ export default function AgentDetailPage() {
             </TabsContent>
 
             <TabsContent value="advanced">
-              <AdvancedTab agent={agent} onUpdate={handleAgentUpdate} />
+              <AdvancedTab
+                formData={formData}
+                onFormDataChange={handleFormDataChange}
+              />
             </TabsContent>
           </Tabs>
 
