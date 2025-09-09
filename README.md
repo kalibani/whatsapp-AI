@@ -1,6 +1,6 @@
 # WhatsApp AI Agent Management Platform
 
-A comprehensive Next.js application for managing WhatsApp AI agents via the [BerryLabs API](<(https://docs.berrylabs.io/docs/api/wa-agent/overview)>). This platform provides a complete dashboard for creating, configuring, and managing intelligent WhatsApp chatbots with advanced features like knowledge bases, file references, webhook integrations, and scheduling.
+A comprehensive Next.js application for managing WhatsApp AI agents via the [BerryLabs API](https://docs.berrylabs.io/docs/api/wa-agent/overview). This platform provides a complete dashboard for creating, configuring, and managing intelligent WhatsApp chatbots with advanced features like knowledge bases, file references, webhook integrations, and scheduling.
 
 ## 🚀 Features
 
