@@ -12,15 +12,11 @@ import {
   AlertCircle,
   Save,
   RotateCcw,
+  ExternalLink,
+  Cherry,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { agentApi } from "@/lib/api";
@@ -52,6 +48,7 @@ export default function AgentDetailPage() {
     description: "",
     knowledge_base: [] as any[],
     files: [] as any[],
+    tools: [] as any[],
     // WhatsApp tab
     whatsapp_connection: {
       account_id: null as string | null,
@@ -114,6 +111,7 @@ export default function AgentDetailPage() {
       description: agentData.description || "",
       knowledge_base: agentData.knowledge_base || [],
       files: agentData.files || [],
+      tools: agentData.tools || [],
       whatsapp_connection: {
         account_id: agentData.whatsapp_connection?.account_id || null,
         phone_number: agentData.whatsapp_connection?.phone_number || null,
@@ -135,6 +133,7 @@ export default function AgentDetailPage() {
       JSON.stringify(formData.knowledge_base) !==
         JSON.stringify(agent.knowledge_base || []) ||
       JSON.stringify(formData.files) !== JSON.stringify(agent.files || []) ||
+      JSON.stringify(formData.tools) !== JSON.stringify(agent.tools || []) ||
       formData.whatsapp_connection.account_id !==
         (agent.whatsapp_connection?.account_id || null) ||
       formData.whatsapp_connection.phone_number !==
@@ -190,6 +189,7 @@ export default function AgentDetailPage() {
         description: formData.description || undefined,
         knowledge_base: formData.knowledge_base,
         files: formData.files,
+        tools: formData.tools,
         whatsapp_connection: formData.whatsapp_connection,
         availability_schedule: formData.availability_schedule,
         advanced_settings: formData.advanced_settings,
@@ -369,6 +369,7 @@ export default function AgentDetailPage() {
                   description: formData.description,
                   knowledge_base: formData.knowledge_base,
                   files: formData.files,
+                  tools: formData.tools,
                 }}
                 onFormDataChange={handleFormDataChange}
                 onUpdate={handleAgentUpdate}
@@ -439,6 +440,20 @@ export default function AgentDetailPage() {
             </div>
           )}
         </div>
+      </div>
+
+      {/* Powered by BerryLabs - Fixed Bottom Right */}
+      <div className="fixed bottom-4 right-4 z-10">
+        <a
+          href="https://berrylabs.io"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-2 px-3 py-2 bg-white/90 backdrop-blur-sm border border-gray-200 rounded-full shadow-sm text-xs text-gray-500 hover:text-gray-700 hover:shadow-md transition-all group"
+        >
+          <Cherry className="h-6 w-6 text-[#FF6B81]" />
+          <span>Powered by BerryLabs</span>
+          <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+        </a>
       </div>
     </div>
   );

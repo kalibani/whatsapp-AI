@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 // Removed react-draggable due to React 19 compatibility issues
 import {
   FileText,
@@ -13,6 +13,13 @@ import {
   Type,
   Library,
   ChevronDown,
+  Settings,
+  ExternalLink,
+  Check,
+  X,
+  Terminal,
+  Edit2,
+  Save,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -50,10 +57,35 @@ import {
 import { Agent } from "@/types/agent";
 import { KnowledgeBaseDocument } from "@/types/knowledge-base";
 import { ClientFile } from "@/types/files";
-import { agentApi, knowledgeBaseApi, filesApi } from "@/lib/api";
+import { knowledgeBaseApi, filesApi } from "@/lib/api";
 import KnowledgeBaseUploadModal from "@/components/knowledge-base-upload-modal";
 import KnowledgeBaseTextModal from "@/components/knowledge-base-text-modal";
 import FileUploadModal from "@/components/file-upload-modal";
+import ToolConfigForm from "@/components/tool-config-form";
+
+// Tool types based on agent schema
+interface Tool {
+  id?: string;
+  type: "webhook";
+  name: string;
+  description: string;
+  api_schema: {
+    url: string;
+    method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
+    request_headers?: Record<string, string>;
+    path_params_schema?: Record<string, any>;
+    query_params_schema?: {
+      properties: Record<string, any>;
+      required: string[];
+    };
+    request_body_schema?: {
+      type: "object";
+      description: string;
+      properties: Record<string, any>;
+      required: string[];
+    };
+  };
+}
 
 interface AgentTabProps {
   agent: Agent;
@@ -64,6 +96,7 @@ interface AgentTabProps {
     description: string;
     knowledge_base: any[];
     files: any[];
+    tools: Tool[];
   };
   onFormDataChange: (field: string, value: any) => void;
   onUpdate: (agent: Agent) => void;
@@ -88,6 +121,51 @@ export default function AgentTab({
   const [addingFileToAgent, setAddingFileToAgent] = useState<string | null>(
     null
   );
+
+  // Ref for auto-scrolling to tool form
+  const toolFormRef = useRef<HTMLDivElement>(null);
+
+  // Tool state variables
+  const [isAddingTool, setIsAddingTool] = useState(false);
+  const [editingToolId, setEditingToolId] = useState<string | null>(null);
+  const [activeToolTab, setActiveToolTab] = useState("info");
+
+  // Tool form state
+  const [toolName, setToolName] = useState("");
+  const [toolDescription, setToolDescription] = useState("");
+  const [toolMethod, setToolMethod] = useState<
+    "GET" | "POST" | "PUT" | "PATCH" | "DELETE"
+  >("GET");
+  const [toolUrl, setToolUrl] = useState("");
+
+  // Tool configuration state
+  const [toolHeaders, setToolHeaders] = useState<Record<string, string>>({});
+  const [toolPathParams, setToolPathParams] = useState<Record<string, any>>({});
+  const [toolQueryParams, setToolQueryParams] = useState<Record<string, any>>(
+    {}
+  );
+  const [toolBodyParams, setToolBodyParams] = useState<Record<string, any>>({});
+
+  // Form input state for adding new parameters
+  const [newHeaderKey, setNewHeaderKey] = useState("");
+  const [newHeaderValue, setNewHeaderValue] = useState("");
+  const [newParamKey, setNewParamKey] = useState("");
+  const [newParamType, setNewParamType] = useState("string");
+  const [newParamDescription, setNewParamDescription] = useState("");
+  const [newParamRequired, setNewParamRequired] = useState(false);
+
+  // Test state
+  const [testSuccess, setTestSuccess] = useState<boolean | null>(null);
+  const [testResponse, setTestResponse] = useState<any>(null);
+  const [testPathParamValues, setTestPathParamValues] = useState<
+    Record<string, string>
+  >({});
+  const [testQueryParamValues, setTestQueryParamValues] = useState<
+    Record<string, string>
+  >({});
+  const [testBodyParamValues, setTestBodyParamValues] = useState<
+    Record<string, any>
+  >({});
 
   const handleInputChange = (field: string, value: string) => {
     onFormDataChange(field, value);
@@ -424,6 +502,416 @@ export default function AgentTab({
 
   // Filter files to show only unassigned ones in library
   const unassignedFiles = files.filter((file) => !isFileAssigned(file.id));
+
+  // Tool management functions
+  const generateToolId = () =>
+    `tool_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+  const resetToolForm = () => {
+    setToolName("");
+    setToolDescription("");
+    setToolMethod("GET");
+    setToolUrl("");
+    setToolHeaders({});
+    setToolPathParams({});
+    setToolQueryParams({});
+    setToolBodyParams({});
+    setNewHeaderKey("");
+    setNewHeaderValue("");
+    setNewParamKey("");
+    setNewParamType("string");
+    setNewParamDescription("");
+    setNewParamRequired(false);
+    setTestSuccess(null);
+    setTestResponse(null);
+    setTestPathParamValues({});
+    setTestQueryParamValues({});
+    setTestBodyParamValues({});
+    setActiveToolTab("info");
+    setEditingToolId(null);
+  };
+
+  const handleAddTool = () => {
+    resetToolForm();
+    setIsAddingTool(true);
+
+    // Scroll to tool form to show it
+    setTimeout(() => {
+      toolFormRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+        inline: "nearest",
+      });
+    }, 150);
+  };
+
+  const handleEditTool = (toolId: string) => {
+    const tool = formData.tools.find((t) => t.id === toolId);
+    if (!tool) return;
+
+    setEditingToolId(toolId);
+    setToolName(tool.name);
+    setToolDescription(tool.description);
+    setToolMethod(tool.api_schema.method);
+    setToolUrl(tool.api_schema.url);
+    setToolHeaders(tool.api_schema.request_headers || {});
+    setToolPathParams(tool.api_schema.path_params_schema || {});
+
+    // Handle query params schema
+    if (tool.api_schema.query_params_schema?.properties) {
+      const queryParams: Record<string, any> = {};
+      Object.entries(tool.api_schema.query_params_schema.properties).forEach(
+        ([key, value]) => {
+          queryParams[key] = {
+            type: (value as any).type || "string",
+            description: (value as any).description || "",
+            required:
+              tool.api_schema.query_params_schema?.required?.includes(key) ||
+              false,
+          };
+        }
+      );
+      setToolQueryParams(queryParams);
+    } else {
+      setToolQueryParams({});
+    }
+
+    // Handle body params schema
+    if (tool.api_schema.request_body_schema?.properties) {
+      const bodyParams: Record<string, any> = {};
+      Object.entries(tool.api_schema.request_body_schema.properties).forEach(
+        ([key, value]) => {
+          bodyParams[key] = {
+            type: (value as any).type || "string",
+            description: (value as any).description || "",
+            required:
+              tool.api_schema.request_body_schema?.required?.includes(key) ||
+              false,
+          };
+        }
+      );
+      setToolBodyParams(bodyParams);
+    } else {
+      setToolBodyParams({});
+    }
+
+    setIsAddingTool(true);
+
+    // Scroll to tool form to show it
+    setTimeout(() => {
+      toolFormRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+        inline: "nearest",
+      });
+    }, 150);
+  };
+
+  const handleSaveTool = () => {
+    if (!toolName.trim() || !toolUrl.trim() || !toolDescription.trim()) {
+      alert("Please fill in all required fields");
+      return;
+    }
+
+    // Validate tool name format
+    const toolNameRegex = /^[a-zA-Z0-9_-]{1,64}$/;
+    if (!toolNameRegex.test(toolName)) {
+      alert(
+        "Tool name must be 1-64 characters and can only contain letters, numbers, underscores and hyphens"
+      );
+      return;
+    }
+
+    // Validate URL
+    try {
+      new URL(toolUrl);
+    } catch (e) {
+      alert("Please enter a valid URL");
+      return;
+    }
+
+    // Build query params schema
+    let queryParamsSchema;
+    if (Object.keys(toolQueryParams).length > 0) {
+      const properties = Object.entries(toolQueryParams).reduce(
+        (acc, [key, value]) => {
+          return {
+            ...acc,
+            [key]: {
+              type: (value as any).type || "string",
+              description: (value as any).description || "",
+            },
+          };
+        },
+        {}
+      );
+
+      const required = Object.entries(toolQueryParams)
+        .filter(([_, value]) => (value as any).required)
+        .map(([key]) => key);
+
+      queryParamsSchema = {
+        properties,
+        required,
+      };
+    }
+
+    // Build body params schema
+    let bodyParamsSchema;
+    if (
+      ["POST", "PUT", "PATCH"].includes(toolMethod) &&
+      Object.keys(toolBodyParams).length > 0
+    ) {
+      const properties = Object.entries(toolBodyParams).reduce(
+        (acc, [key, value]) => {
+          return {
+            ...acc,
+            [key]: {
+              type: (value as any).type || "string",
+              description: (value as any).description || "",
+            },
+          };
+        },
+        {}
+      );
+
+      const required = Object.entries(toolBodyParams)
+        .filter(([_, value]) => (value as any).required)
+        .map(([key]) => key);
+
+      bodyParamsSchema = {
+        type: "object" as const,
+        description: `Request body for ${toolName}`,
+        properties,
+        required,
+      };
+    }
+
+    const toolData: Tool = {
+      id: editingToolId || generateToolId(),
+      type: "webhook",
+      name: toolName,
+      description: toolDescription,
+      api_schema: {
+        url: toolUrl,
+        method: toolMethod,
+        request_headers:
+          Object.keys(toolHeaders).length > 0 ? toolHeaders : undefined,
+        path_params_schema:
+          Object.keys(toolPathParams).length > 0 ? toolPathParams : undefined,
+        query_params_schema: queryParamsSchema,
+        request_body_schema: bodyParamsSchema,
+      },
+    };
+
+    let updatedTools: Tool[];
+    if (editingToolId) {
+      updatedTools = formData.tools.map((tool) =>
+        tool.id === editingToolId ? toolData : tool
+      );
+    } else {
+      updatedTools = [...formData.tools, toolData];
+    }
+
+    onFormDataChange("tools", updatedTools);
+    setIsAddingTool(false);
+    resetToolForm();
+  };
+
+  const handleRemoveTool = (toolId: string) => {
+    if (!confirm("Are you sure you want to remove this tool?")) return;
+
+    const updatedTools = formData.tools.filter((tool) => tool.id !== toolId);
+    onFormDataChange("tools", updatedTools);
+  };
+
+  // Parameter management functions
+  const addHeader = () => {
+    if (newHeaderKey.trim() && newHeaderValue.trim()) {
+      setToolHeaders((prev) => ({
+        ...prev,
+        [newHeaderKey]: newHeaderValue,
+      }));
+      setNewHeaderKey("");
+      setNewHeaderValue("");
+    }
+  };
+
+  const removeHeader = (key: string) => {
+    const newHeaders = { ...toolHeaders };
+    delete newHeaders[key];
+    setToolHeaders(newHeaders);
+  };
+
+  const addParameter = (type: "path" | "query" | "body") => {
+    if (!newParamKey.trim()) return;
+
+    const paramData = {
+      type: newParamType,
+      description: newParamDescription || `Parameter ${newParamKey}`,
+      required: newParamRequired,
+    };
+
+    switch (type) {
+      case "path":
+        setToolPathParams((prev) => ({ ...prev, [newParamKey]: paramData }));
+        break;
+      case "query":
+        setToolQueryParams((prev) => ({ ...prev, [newParamKey]: paramData }));
+        break;
+      case "body":
+        setToolBodyParams((prev) => ({ ...prev, [newParamKey]: paramData }));
+        break;
+    }
+
+    setNewParamKey("");
+    setNewParamType("string");
+    setNewParamDescription("");
+    setNewParamRequired(false);
+  };
+
+  const removeParameter = (type: "path" | "query" | "body", key: string) => {
+    switch (type) {
+      case "path":
+        const newPathParams = { ...toolPathParams };
+        delete newPathParams[key];
+        setToolPathParams(newPathParams);
+        break;
+      case "query":
+        const newQueryParams = { ...toolQueryParams };
+        delete newQueryParams[key];
+        setToolQueryParams(newQueryParams);
+        break;
+      case "body":
+        const newBodyParams = { ...toolBodyParams };
+        delete newBodyParams[key];
+        setToolBodyParams(newBodyParams);
+        break;
+    }
+  };
+
+  const testTool = async () => {
+    try {
+      if (!toolUrl.trim()) {
+        throw new Error("URL is required");
+      }
+
+      let urlToTest = toolUrl;
+
+      // Replace path parameters
+      Object.keys(toolPathParams).forEach((paramKey) => {
+        const placeholder = `{${paramKey}}`;
+        const value = testPathParamValues[paramKey] || `sample_${paramKey}`;
+        urlToTest = urlToTest.replace(placeholder, value);
+      });
+
+      const urlObj = new URL(urlToTest);
+
+      // Add query parameters
+      Object.keys(toolQueryParams).forEach((paramKey) => {
+        const value = testQueryParamValues[paramKey] || `sample_${paramKey}`;
+        urlObj.searchParams.append(paramKey, value);
+      });
+
+      const requestHeaders = {
+        "Content-Type": "application/json",
+        ...toolHeaders,
+      };
+
+      const options: RequestInit = {
+        method: toolMethod,
+        headers: requestHeaders,
+      };
+
+      let requestBody: any = null;
+      if (
+        ["POST", "PUT", "PATCH"].includes(toolMethod) &&
+        Object.keys(toolBodyParams).length > 0
+      ) {
+        const body: Record<string, any> = {};
+        Object.keys(toolBodyParams).forEach((paramKey) => {
+          const value = testBodyParamValues[paramKey] || `sample_${paramKey}`;
+          body[paramKey] = value;
+        });
+        requestBody = body;
+        options.body = JSON.stringify(body);
+      }
+
+      const testResponseObj = {
+        url: urlObj.toString(),
+        method: toolMethod,
+        headers: requestHeaders,
+        body: requestBody,
+      };
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      options.signal = controller.signal;
+
+      try {
+        const response = await fetch(urlObj.toString(), options);
+        clearTimeout(timeoutId);
+
+        if (response.ok) {
+          setTestSuccess(true);
+          try {
+            const data = await response.json();
+            setTestResponse({
+              ...testResponseObj,
+              response: {
+                status: response.status,
+                statusText: response.statusText,
+                data,
+              },
+            });
+          } catch (e) {
+            setTestResponse({
+              ...testResponseObj,
+              response: {
+                status: response.status,
+                statusText: response.statusText,
+              },
+            });
+          }
+        } else {
+          setTestSuccess(false);
+          setTestResponse({
+            ...testResponseObj,
+            response: {
+              status: response.status,
+              statusText: response.statusText,
+            },
+            error: `HTTP Error ${response.status}: ${response.statusText}`,
+          });
+        }
+      } catch (error: any) {
+        clearTimeout(timeoutId);
+        setTestSuccess(false);
+        let errorMessage = "Unknown error";
+        if (error.name === "AbortError") {
+          errorMessage = "Request timeout";
+        } else if (error.message?.includes("CORS")) {
+          errorMessage =
+            "CORS error: Server may not allow requests from browser";
+        } else {
+          errorMessage = error.message || "Unknown error";
+        }
+
+        setTestResponse({
+          ...testResponseObj,
+          error: errorMessage,
+        });
+      }
+    } catch (error: any) {
+      setTestSuccess(false);
+      setTestResponse({
+        url: toolUrl,
+        method: toolMethod,
+        headers: { "Content-Type": "application/json", ...toolHeaders },
+        error: `Validation error: ${error.message}`,
+      });
+    }
+  };
 
   // Fetch knowledge base documents and files on component mount
   useEffect(() => {
@@ -1038,58 +1526,115 @@ export default function AgentTab({
                 External tools and webhook integrations
               </CardDescription>
             </div>
-            <Button variant="outline" size="sm">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleAddTool}
+              disabled={isAddingTool}
+            >
               <Plus className="h-4 w-4 mr-2" />
               Add Tool
             </Button>
           </div>
         </CardHeader>
         <CardContent>
-          {agent.tools && agent.tools.length > 0 ? (
-            <div className="space-y-3">
-              {agent.tools.map((tool, index) => (
-                <div
-                  key={tool.id || index}
-                  className="flex items-center justify-between p-3 border rounded-lg"
-                >
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <Wrench className="h-4 w-4" />
-                      <span className="font-medium">{tool.name}</span>
-                      <Badge variant="outline">{tool.api_schema.method}</Badge>
-                      {tool.is_global && (
-                        <Badge variant="secondary">Global</Badge>
-                      )}
+          {/* Tools List */}
+          {formData.tools && formData.tools.length > 0 ? (
+            <div className="space-y-3 mb-6">
+              {formData.tools.map((tool) => {
+                const urlDisplay = (() => {
+                  try {
+                    const url = new URL(tool.api_schema.url);
+                    return url.hostname + url.pathname;
+                  } catch {
+                    return tool.api_schema.url;
+                  }
+                })();
+
+                return (
+                  <div
+                    key={tool.id}
+                    className="flex items-center justify-between p-4 border rounded-lg bg-gray-50"
+                  >
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Terminal className="h-4 w-4 text-blue-600" />
+                        <span className="font-medium">{tool.name}</span>
+                        <Badge variant="outline">
+                          {tool.api_schema.method}
+                        </Badge>
+                      </div>
+                      <p className="text-sm text-gray-600 mb-2">
+                        {tool.description}
+                      </p>
+                      <div className="flex items-center gap-1 text-xs text-gray-500">
+                        <span>🔗</span>
+                        <span className="font-mono">{urlDisplay}</span>
+                      </div>
                     </div>
-                    <div className="text-sm text-gray-500 mt-1">
-                      {tool.description}
-                    </div>
-                    <div className="text-xs text-gray-400 mt-1">
-                      URL: {tool.api_schema.url}
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleEditTool(tool.id!)}
+                      >
+                        <Settings className="h-4 w-4 mr-1" />
+                        Edit
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleRemoveTool(tool.id!)}
+                        className="text-red-600 hover:text-red-700"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </div>
                   </div>
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="sm">
-                      Configure
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="text-red-600"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           ) : (
-            <div className="text-center py-8 text-gray-500">
-              <Wrench className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-              <p>No tools configured</p>
-              <p className="text-sm">
-                Add webhooks and external tools to extend functionality
-              </p>
+            !isAddingTool && (
+              <div className="text-center py-8 text-gray-500 mb-6">
+                <Terminal className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+                <p className="font-medium">No tools configured</p>
+                <p className="text-sm">
+                  Add webhooks and external tools to extend your agent's
+                  capabilities
+                </p>
+              </div>
+            )
+          )}
+
+          {/* Tool Configuration Form */}
+          {isAddingTool && (
+            <div ref={toolFormRef}>
+              <ToolConfigForm
+                editingToolId={editingToolId}
+                onSave={(tool) => {
+                  let updatedTools: Tool[];
+                  if (editingToolId) {
+                    updatedTools = formData.tools.map((t) =>
+                      t.id === editingToolId ? tool : t
+                    );
+                  } else {
+                    updatedTools = [...formData.tools, tool];
+                  }
+                  onFormDataChange("tools", updatedTools);
+                  setIsAddingTool(false);
+                  resetToolForm();
+                }}
+                onCancel={() => {
+                  setIsAddingTool(false);
+                  resetToolForm();
+                }}
+                initialData={
+                  editingToolId
+                    ? formData.tools.find((t) => t.id === editingToolId)
+                    : undefined
+                }
+              />
             </div>
           )}
         </CardContent>

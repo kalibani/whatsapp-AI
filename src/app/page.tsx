@@ -1,7 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { Menu, Search, Bell, User, Bot } from "lucide-react";
+import {
+  Menu,
+  Search,
+  Bell,
+  User,
+  Bot,
+  ExternalLink,
+  Cherry,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -34,6 +42,20 @@ export default function Dashboard() {
           </Button>
         ))}
       </nav>
+
+      {/* Powered by BerryLabs */}
+      <div className="border-t border-gray-200 px-4 py-4">
+        <a
+          href="https://berrylabs.io"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center justify-center gap-2 text-xs text-gray-500 hover:text-gray-700 transition-colors group"
+        >
+          <Cherry className="h-6 w-6 text-[#FF6B81]" />
+          <span>Powered by BerryLabs</span>
+          <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+        </a>
+      </div>
     </div>
   );
 
