@@ -1,19 +1,21 @@
 import { useState, useEffect } from 'react';
+import { clientApi } from '@/lib/api';
 
 export interface Package {
   package_id: string;
   package_name: string;
+  floor_price: string;
   price: string;
+  partner_price: string;
   description: string;
   features: string[];
 }
 
 interface ApiResponse {
   status: string;
-  data: string;
-  result: {
-    packages: Package[];
-    addons: any[];
+  data: {
+    data: Package[];
+    count: number;
   };
 }
 
@@ -25,27 +27,9 @@ export function usePackages() {
   useEffect(() => {
     async function fetchPackages() {
       try {
-        const apiUrl = process.env.NEXT_PUBLIC_BERRYLABS_API_URL;
-        const apiKey = process.env.NEXT_PUBLIC_BERRYLABS_API_KEY;
-        
-        if (!apiUrl) {
-          throw new Error('API URL not configured');
-        }
-
-        const response = await fetch(`${apiUrl}/api/packages`, {
-          headers: {
-            'Authorization': `Bearer ${apiKey}`,
-            'Content-Type': 'application/json',
-          },
-        });
-        
-        if (!response.ok) {
-          throw new Error('Failed to fetch packages');
-        }
-        
-        const data: ApiResponse = await response.json();
-        if (data.status === 'success' && data.result?.packages) {
-          setPackages(data.result.packages);
+        const data: ApiResponse = await clientApi.getPackages();
+        if (data.status === 'success' && data.data?.data) {
+          setPackages(data.data.data);
         } else {
           throw new Error('Invalid API response format');
         }

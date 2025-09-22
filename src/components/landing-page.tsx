@@ -280,7 +280,7 @@ export function LandingPage() {
             </div>
           </div>
           
-          <div className="border-t border-gray-800 mt-8 pt-8 text-center">
+          <div className="border-t border-gray-800 mt-8 pt-8 text-center flex justify-center gap-1">
             <div className="flex items-center justify-center gap-2 text-gray-400 mb-4">
               <Cherry className="h-5 w-5 text-[#FF6B81]" />
               <span>Powered by BerryLabs</span>
@@ -295,7 +295,7 @@ export function LandingPage() {
               </a>
             </div>
             <p className="text-gray-400">
-              © 2024 WhatsApp AI. All rights reserved.
+              © {new Date().getFullYear()} WhatsApp AI. All rights reserved.
             </p>
           </div>
         </div>
