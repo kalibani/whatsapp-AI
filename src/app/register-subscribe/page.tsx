@@ -1,7 +1,7 @@
 'use client';
 
 import { useSearchParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -24,7 +24,7 @@ interface FormData {
   password: string;
 }
 
-export default function RegisterSubscribePage() {
+function RegisterSubscribeContent() {
   const searchParams = useSearchParams();
   const { packages, loading, error } = usePackages();
   const [selectedPackage, setSelectedPackage] = useState<Package | null>(null);
@@ -372,5 +372,13 @@ export default function RegisterSubscribePage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function RegisterSubscribePage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8"><div className="max-w-4xl mx-auto text-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div><p className="mt-4">Loading registration...</p></div></div>}>
+      <RegisterSubscribeContent />
+    </Suspense>
   );
 }
