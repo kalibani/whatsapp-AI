@@ -75,47 +75,47 @@ function RegisterSubscribeContent() {
       return;
     }
 
+    if (formData.password.length < 8) {
+      toast.error('Password must be at least 8 characters long');
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
-      // Step 1: Create subscription (this will also register the user)
-      const subscriptionResponse = await clientApi.createSubscriptionRegister({
-        name: `${formData.firstName} ${formData.lastName}`,
-        phone: formData.phone,
-        email: formData.email,
-        package_id: packageId,
-        sub_type: billingCycle,
-      });
-
-      // Step 2: Store form data and subscription info for post-payment registration
-      localStorage.setItem('pendingRegistration', JSON.stringify({
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        email: formData.email,
-        phone: formData.phone,
-        password: formData.password,
-        packageId: packageId,
-        billingCycle: billingCycle,
-        clientKey: subscriptionResponse?.client_key || null,
-      }));
-
-      // Step 3: Redirect to payment immediately with special flag
-      if (subscriptionResponse?.data?.url) {
-        toast.success('Redirecting to payment...');
-
-        // Add query parameter to payment URL to identify this as register flow
-        const paymentUrl = new URL(subscriptionResponse.data.url);
-        paymentUrl.searchParams.append('from', 'register_subscribe');
-
-        window.location.href = paymentUrl.toString();
-      } else {
-        // Fallback if no payment URL
-        toast.error('No payment URL received');
+      // Step 1: Create Clerk account (same as regular signup)
+      if (!signUp) {
+        throw new Error('Sign up not available');
       }
 
+      await signUp.create({
+        emailAddress: formData.email,
+        password: formData.password,
+        unsafeMetadata: {
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          phone: formData.phone,
+        },
+      });
+
+      // Step 2: Prepare email verification
+      await signUp.prepareEmailAddressVerification({ strategy: 'email_code' });
+
+      // Step 3: Store package data for post-verification subscription
+      localStorage.setItem('postRegistrationSubscription', JSON.stringify({
+        packageId: packageId,
+        billingCycle: billingCycle,
+        userEmail: formData.email,
+        userPhone: formData.phone,
+        userName: `${formData.firstName} ${formData.lastName}`,
+      }));
+
+      // Step 4: Redirect to email verification
+      router.push(`/verify-email?redirect=${encodeURIComponent('/register-subscribe-complete')}`);
+
     } catch (error: any) {
-      console.error('Subscription error:', error);
-      toast.error(error.message || 'Failed to create subscription');
+      console.error('Registration error:', error);
+      toast.error(error.message || 'Failed to create account');
     } finally {
       setIsSubmitting(false);
     }

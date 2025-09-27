@@ -335,4 +335,12 @@ export const clientApi = {
     const response = await api.get(`/api/reseller/client/order/${orderId}/status`);
     return response.data;
   },
+
+  // Get client key from access_id
+  getClientKey: async (accessId: string) => {
+    const response = await api.post("/api/reseller/client/client-key", {
+      access_id: accessId
+    });
+    return response.data;
+  },
 };
