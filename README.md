@@ -2,6 +2,8 @@
 
 A comprehensive Next.js application for managing WhatsApp AI agents via the [BerryLabs API](https://docs.berrylabs.io/docs/api/wa-agent/overview). This platform provides a complete dashboard for creating, configuring, and managing intelligent WhatsApp chatbots with advanced features like knowledge bases, file references, webhook integrations, and scheduling.
 
+🚀 **[Try Live Demo](https://whatsapp-ai-six.vercel.app/)** - Experience the platform in action!
+
 ## 🚀 Features
 
 ### 📱 Agent Management
@@ -681,6 +683,58 @@ pnpm install
 pnpm prisma generate
 ```
 
+## 📄 License & Usage Terms
+
+### 🆓 Free & Open Source
+
+This project is **free and open source** for personal and internal business use. You can:
+
+- Use it for your own WhatsApp AI agents
+- Modify the code to suit your needs
+- Deploy it for your organization's internal use
+
+### 🤝 Partnership & Reseller Program
+
+If you plan to **resell this solution** or **manage multiple clients**, you'll need:
+
+**📋 Complete Partnership Information**: [BerryLabs Partnership Program](https://berrylabs.io/mitra)
+
+#### Reseller Requirements
+
+- **Reseller API Key**: Required for managing multiple client accounts
+- **Client Key**: Needed for end-client management via BerryLabs Partnership Program
+- **Authentication**: Follow the [Reseller Authentication Guide](https://docs.berrylabs.io/docs/api/wa-agent/authentication#reseller-authentication)
+
+#### Partnership Benefits
+
+- **Attractive Revenue Sharing**: Up to 60% revenue share for qualified resellers
+- Access to reseller API endpoints
+- Client management capabilities
+- Partner support and resources
+- Comprehensive partner training and onboarding
+
+### 🏷️ Branding Requirements
+
+- **Keep BerryLabs Branding**: The "Powered by BerryLabs" branding must remain visible
+- **Attribution Required**: Do not remove existing BerryLabs brand elements
+- **Whitelabel Options**: Available for qualified partners
+
+#### Whitelabel Program
+
+For custom branding and whitelabel solutions:
+
+- **Contact**: team@berrylabs.io
+- **Subject**: Partnership Whitelabel Program
+- **Include**: Your use case and partnership requirements
+
+### ⚖️ Usage Summary
+
+- ✅ **Free Use**: Personal and internal business use
+- ✅ **Modifications**: Code customization allowed
+- ❌ **Reselling**: Requires partnership agreement and reseller keys
+- ❌ **Brand Removal**: BerryLabs attribution must remain
+- 💼 **Commercial**: Whitelabel options available through partnership
+
 ## 🎯 Usage Guide
 
 ### Creating Your First Agent
@@ -800,57 +854,6 @@ src/
 4. Test thoroughly
 5. Submit a pull request
 
-## 📄 License & Usage Terms
-
-### 🆓 Free & Open Source
-
-This project is **free and open source** for personal and internal business use. You can:
-
-- Use it for your own WhatsApp AI agents
-- Modify the code to suit your needs
-- Deploy it for your organization's internal use
-
-### 🤝 Partnership & Reseller Program
-
-If you plan to **resell this solution** or **manage multiple clients**, you'll need:
-
-**📋 Complete Partnership Information**: [BerryLabs Partnership Program](https://berrylabs.io/mitra)
-
-#### Reseller Requirements
-
-- **Reseller API Key**: Required for managing multiple client accounts
-- **Client Key**: Needed for end-client management via BerryLabs Partnership Program
-- **Authentication**: Follow the [Reseller Authentication Guide](https://docs.berrylabs.io/docs/api/wa-agent/authentication#reseller-authentication)
-
-#### Partnership Benefits
-
-- **Attractive Revenue Sharing**: Up to 60% revenue share for qualified resellers
-- Access to reseller API endpoints
-- Client management capabilities
-- Partner support and resources
-- Comprehensive partner training and onboarding
-
-### 🏷️ Branding Requirements
-
-- **Keep BerryLabs Branding**: The "Powered by BerryLabs" branding must remain visible
-- **Attribution Required**: Do not remove existing BerryLabs brand elements
-- **Whitelabel Options**: Available for qualified partners
-
-#### Whitelabel Program
-
-For custom branding and whitelabel solutions:
-
-- **Contact**: team@berrylabs.io
-- **Subject**: Partnership Whitelabel Program
-- **Include**: Your use case and partnership requirements
-
-### ⚖️ Usage Summary
-
-- ✅ **Free Use**: Personal and internal business use
-- ✅ **Modifications**: Code customization allowed
-- ❌ **Reselling**: Requires partnership agreement and reseller keys
-- ❌ **Brand Removal**: BerryLabs attribution must remain
-- 💼 **Commercial**: Whitelabel options available through partnership
 
 ## 🆘 Support
 
