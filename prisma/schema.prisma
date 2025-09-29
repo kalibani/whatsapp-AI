@@ -8,16 +8,20 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  clerkId   String   @unique
-  email     String   @unique
-  firstName String?
-  lastName  String?
-  imageUrl  String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  agents Agent[]
+  id              String         @id @default(cuid())
+  clerkId         String         @unique
+  email           String         @unique
+  firstName       String?
+  lastName        String?
+  phone           String?
+  imageUrl        String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  clientKey       String?
+  berryLabsUserId String?
+  agents          Agent[]
+  subscriptions   Subscription[]
+  orders          Order[]
 
   @@map("users")
 }
@@ -27,9 +31,50 @@ model Agent {
   name        String
   description String?
   userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("agents")
+}
+
+model Subscription {
+  id               String   @id @default(cuid())
+  userId           String
+  packageId        String
+  subscriptionId   String   @unique // BerryLabs subscription_id
+  packageName      String
+  status           String
+  totalAmount      String
+  subsType         String?
+  organizationId   String?
+  subOrganizationId String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orders           Order[]
+
+  @@map("subscriptions")
+}
+
+model Order {
+  id               String        @id @default(cuid())
+  userId           String
+  subscriptionId   String?
+  orderId          String        @unique // BerryLabs order_id
+  packageId        String
+  orderNo          String
+  packageName      String
+  orderDate        DateTime
+  status           String
+  totalAmount      String
+  organizationId   String?
+  subOrganizationId String?
+  subsType         String?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  user             User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subscription     Subscription? @relation(fields: [subscriptionId], references: [id])
+
+  @@map("orders")
 }

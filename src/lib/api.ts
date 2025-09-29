@@ -32,18 +32,32 @@ import {
   RemoveFileAssociationResponse,
   DeleteFileResponse,
 } from "@/types/files";
+import { getClientKeyFromCookie, removeClientKeyCookie } from "./auth-utils";
 
 // Create axios instance with base configuration
 const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_BERRYLABS_API_URL,
   headers: {
     "Content-Type": "application/json",
-    "xi-api-key": process.env.NEXT_PUBLIC_BERRYLABS_API_KEY,
   },
 });
 
-// Add request interceptor for debugging
+// Add request interceptor to dynamically set API key
 api.interceptors.request.use((config) => {
+  // Try to get client key from cookie first
+  const clientKey = getClientKeyFromCookie();
+
+  // Use client key from cookie or fallback to env variable
+  const apiKey = process.env.NEXT_PUBLIC_BERRYLABS_API_KEY;
+
+  if (apiKey) {
+    config.headers["xi-api-key"] = apiKey;
+  }
+
+  if (clientKey) {
+    config.headers["xi-client-key"] = clientKey;
+  }
+
   return config;
 });
 
@@ -51,6 +65,11 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+    // If we get a 401 Unauthorized error, remove the client key cookie
+    // This handles cases where the client key becomes invalid
+    if (error.response?.status === 401) {
+      removeClientKeyCookie();
+    }
     return Promise.reject(error);
   }
 );
@@ -262,6 +281,66 @@ export const filesApi = {
   // Delete file permanently
   deleteFile: async (fileId: string): Promise<DeleteFileResponse> => {
     const response = await api.delete(`/v1/wa/client-files/${fileId}`);
+    return response.data;
+  },
+};
+
+// Reseller/Client API endpoints
+export const clientApi = {
+  // Register new client
+  register: async (userData: {
+    name: string;
+    email: string;
+    phone: string;
+  }) => {
+    const response = await api.post("/api/reseller/client/register", userData);
+    return response.data;
+  },
+
+  // Get packages
+  getPackages: async () => {
+    const response = await api.get("/api/reseller/client/packages");
+    return response.data;
+  },
+
+  // Create subscription
+  createSubscription: async (subscriptionData: {
+    package_id: string;
+    sub_type: "monthly" | "annual";
+  }) => {
+    const response = await api.post(
+      "/api/reseller/client/subscription",
+      subscriptionData
+    );
+    return response.data;
+  },
+
+    // Create subscription
+  createSubscriptionRegister: async (subscriptionData: {
+    name: string;
+    phone: string;
+    email: string;
+    package_id: string;
+    sub_type: "monthly" | "annual";
+  }) => {
+    const response = await api.post(
+      "/api/reseller/client",
+      subscriptionData
+    );
+    return response.data;
+  },
+
+  // Get order status
+  getOrderStatus: async (orderId: string) => {
+    const response = await api.get(`/api/reseller/client/order/${orderId}/status`);
+    return response.data;
+  },
+
+  // Get client key from access_id
+  getClientKey: async (accessId: string) => {
+    const response = await api.post("/api/reseller/client/client-key", {
+      access_id: accessId
+    });
     return response.data;
   },
 };

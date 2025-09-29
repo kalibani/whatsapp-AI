@@ -95,9 +95,10 @@ export const toolSchema = z.object({
     url: z.string().url("Must be a valid URL"),
     method: z.enum(["GET", "POST", "PUT", "PATCH", "DELETE"]),
     request_headers: z
-      .record(z.string().or(z.object({ secret_id: z.string() })))
+      .record(z.string(), z.string().or(z.object({ secret_id: z.string() })))
       .optional(),
     path_params_schema: z.record(
+      z.string(),
       z.object({
         type: z.string(),
         description: z.string().optional(),
@@ -109,6 +110,7 @@ export const toolSchema = z.object({
     query_params_schema: z
       .object({
         properties: z.record(
+          z.string(),
           z.object({
             type: z.string(),
             description: z.string().optional(),
@@ -124,6 +126,7 @@ export const toolSchema = z.object({
         description: z.string().min(1, "Description is required"),
         properties: z
           .record(
+            z.string(),
             z
               .object({
                 type: z.string(),
