@@ -148,6 +148,7 @@ export default function KnowledgeBaseUploadModal({
       setError(null);
 
       const uploadData = {
+        id: crypto.randomUUID(),
         file,
         title: title.trim(),
         description: description.trim() || undefined,

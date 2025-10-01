@@ -242,7 +242,7 @@ export default function AgentTab({
     // If document details are provided, add to selected knowledge base
     if (uploadedDoc) {
       const newKnowledgeBaseItem = {
-        id: uploadedDoc.id,
+        id: uploadedDoc.document_id,
         name: uploadedDoc.title,
         type:
           uploadedDoc.document_type === "text"
