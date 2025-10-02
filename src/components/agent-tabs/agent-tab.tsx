@@ -268,11 +268,10 @@ export default function AgentTab({
   const handleTextUploadSuccess = (uploadedDoc?: any) => {
     // Refresh knowledge base list so new document appears in library
     fetchKnowledgeBaseDocs();
-
     // If document details are provided, add to selected knowledge base
     if (uploadedDoc) {
       const newKnowledgeBaseItem = {
-        id: uploadedDoc.id,
+        id: uploadedDoc.document_id,
         name: uploadedDoc.title,
         type: "text", // Text uploads are always type 'text'
         description: uploadedDoc.description || "",
@@ -1649,6 +1648,7 @@ export default function AgentTab({
 
       <KnowledgeBaseTextModal
         isOpen={showTextModal}
+        agentId={agent.id}
         onClose={() => setShowTextModal(false)}
         onUploadSuccess={handleTextUploadSuccess}
       />

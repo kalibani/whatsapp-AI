@@ -166,6 +166,7 @@ export const knowledgeBaseApi = {
     const response = await api.post(
       "/v1/wa/knowledge/upload/text",
       {
+        id: data.id,
         title: data.title,
         content: data.content,
         description: data.description,

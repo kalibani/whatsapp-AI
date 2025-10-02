@@ -72,6 +72,7 @@ export interface UploadDocumentRequest {
 }
 
 export interface UploadTextRequest {
+  id: string;
   title: string;
   content: string;
   description?: string;
