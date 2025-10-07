@@ -68,314 +68,6 @@ A comprehensive Next.js application for managing WhatsApp AI agents via the [Ber
 - **Notifications**: Sonner toast library
 - **Package Manager**: pnpm
 
-## 🔐 Authentication & User Flow
-
-This application integrates **Clerk** for user authentication and **Prisma** for local database management, while connecting to the **BerryLabs API** for WhatsApp AI agent functionality.
-
-### 🔑 Authentication Stack
-
-- **Frontend Auth**: [Clerk](https://clerk.com) - Complete user authentication solution
-- **Database**: [Prisma](https://prisma.io) - Type-safe database ORM
-- **External API**: [BerryLabs API](https://docs.berrylabs.io) - WhatsApp AI agent management
-- **Session Management**: Cookie-based client key storage for API access
-
-### 📊 Database Schema
-
-The application uses a dual-database architecture:
-
-```prisma
-model User {
-  id              String   @id @default(cuid())
-  clerkId         String   @unique
-  email           String
-  firstName       String
-  lastName        String
-  phone           String?
-  clientKey       String?  // BerryLabs API client key
-  berryLabsUserId String?  // BerryLabs user ID
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  subscriptions   Subscription[]
-}
-
-model Subscription {
-  id               String   @id @default(cuid())
-  userId           String
-  packageId        String
-  subscriptionId   String   @unique
-  packageName      String
-  status           String
-  totalAmount      String
-  subsType         String?
-  organizationId   String?
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-  user             User     @relation(fields: [userId], references: [id])
-  orders           Order[]
-}
-
-model Order {
-  id             String        @id @default(cuid())
-  userId         String
-  subscriptionId String?
-  orderId        String        @unique
-  amount         String
-  status         String
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
-  user           User          @relation(fields: [userId], references: [id])
-  subscription   Subscription? @relation(fields: [subscriptionId], references: [id])
-}
-```
-
-### 🚪 Authentication Flows
-
-#### 1. **Regular Login Flow**
-
-```mermaid
-graph TD
-    A[User visits /sign-in] --> B[Clerk Authentication]
-    B --> C[Email/Password Login]
-    C --> D[Clerk Session Created]
-    D --> E[Redirect to /dashboard]
-    E --> F[Check User in Local DB]
-    F --> G[Access Dashboard Content]
-```
-
-**Implementation:**
-- Uses Clerk's built-in sign-in component
-- Automatic session management
-- Protected routes via Clerk middleware
-
-#### 2. **Regular Registration Flow**
-
-```mermaid
-graph TD
-    A[User visits /sign-up] --> B[Fill Registration Form]
-    B --> C[Clerk Account Creation]
-    C --> D[Email Verification]
-    D --> E[Save User to Local DB]
-    E --> F[Register with BerryLabs API]
-    F --> G[Store Client Key]
-    G --> H[Redirect to /dashboard]
-```
-
-**Implementation:**
-```typescript
-// src/components/custom-signup.tsx
-const handleVerification = async () => {
-  // 1. Complete Clerk verification
-  const completeSignUp = await signUp.attemptEmailAddressVerification({
-    code: verificationCode,
-  });
-
-  // 2. Save to local database
-  await createUserInDatabase({
-    clerkId: completeSignUp.createdUserId!,
-    email: formData.email,
-    firstName: formData.firstName,
-    lastName: formData.lastName,
-    phone: formData.phone,
-  });
-
-  // 3. Register with BerryLabs API
-  const apiResponse = await clientApi.register({
-    name: `${formData.firstName} ${formData.lastName}`,
-    email: formData.email,
-    phone: formData.phone,
-  });
-
-  // 4. Store client key
-  setClientKeyCookie(apiResponse.data.client_key);
-  await updateUserWithBerryLabsData(userId, apiResponse.data);
-};
-```
-
-#### 3. **Register + Subscribe Flow**
-
-```mermaid
-graph TD
-    A[User visits /register-subscribe] --> B[Fill Form + Select Package]
-    B --> C[Clerk Account Creation]
-    C --> D[Email Verification]
-    D --> E[Auto-redirect to /register-subscribe-complete]
-    E --> F[Save User to Local DB]
-    F --> G[Call BerryLabs /api/reseller/client]
-    G --> H[Redirect to Payment Gateway]
-    H --> I[Payment Completion]
-    I --> J[Return to /payment-status?access_id=xxx]
-    J --> K[Get Client Key from access_id]
-    K --> L[Update User with Client Key]
-    L --> M[Store Client Key in Cookies]
-    M --> N[Check Payment Status]
-    N --> O[Redirect to /dashboard]
-```
-
-**Key Implementation Details:**
-
-**Step 1: Registration with Package Selection**
-```typescript
-// src/app/register-subscribe/page.tsx
-const handleSubmit = async (e: React.FormEvent) => {
-  // Standard Clerk registration
-  await signUp.create({
-    emailAddress: formData.email,
-    password: formData.password,
-    unsafeMetadata: {
-      firstName: formData.firstName,
-      lastName: formData.lastName,
-      phone: formData.phone,
-    },
-  });
-
-  // Store package data for later
-  localStorage.setItem('postRegistrationSubscription', JSON.stringify({
-    packageId: packageId,
-    billingCycle: billingCycle,
-    userEmail: formData.email,
-    userPhone: formData.phone,
-    userName: `${formData.firstName} ${formData.lastName}`,
-  }));
-
-  // Redirect to email verification
-  router.push('/verify-email?redirect=/register-subscribe-complete');
-};
-```
-
-**Step 2: Automatic Subscription Creation**
-```typescript
-// src/app/register-subscribe-complete/page.tsx
-const handleCreateAccount = async () => {
-  // 1. Create user in local database
-  await createUserInDatabase({
-    clerkId: user.id,
-    email: user.primaryEmailAddress?.emailAddress,
-    firstName: user.unsafeMetadata?.firstName,
-    lastName: user.unsafeMetadata?.lastName,
-    phone: user.unsafeMetadata?.phone,
-  });
-
-  // 2. Call BerryLabs API to register + create subscription
-  const response = await clientApi.createSubscriptionRegister({
-    name: subscriptionData.userName,
-    phone: subscriptionData.userPhone,
-    email: subscriptionData.userEmail,
-    package_id: subscriptionData.packageId,
-    sub_type: subscriptionData.billingCycle,
-  });
-
-  // 3. Redirect to payment
-  window.location.href = response.data.url;
-};
-```
-
-**Step 3: Payment Status with Client Key Setup**
-```typescript
-// src/app/payment-status/page.tsx
-useEffect(() => {
-  const setupClientKeyFromAccessId = async () => {
-    if (!accessId || !user) return;
-
-    // Get client key from access_id
-    const response = await clientApi.getClientKey(accessId);
-
-    if (response?.data?.client_key) {
-      // Set client key in cookies
-      setClientKeyCookie(response.data.client_key);
-
-      // Update user's clientKey in database
-      await updateUserClientKey(
-        user.id,
-        response.data.client_key,
-        response.data.user_id
-      );
-
-      // Mark setup as complete
-      setClientKeySetupComplete(true);
-    }
-  };
-
-  setupClientKeyFromAccessId();
-}, [accessId, user]);
-
-// Only check payment status after client key setup
-useEffect(() => {
-  if (orderId && (!accessId || clientKeySetupComplete)) {
-    checkPaymentStatus();
-  }
-}, [orderId, accessId, clientKeySetupComplete]);
-```
-
-### 🔑 Client Key Management
-
-The **client key** is crucial for accessing BerryLabs API endpoints and must be properly managed:
-
-#### Storage Locations:
-1. **Database**: `users.clientKey` field for persistence
-2. **Cookies**: `xi-client-key` for API requests
-3. **API Headers**: Automatically added to all BerryLabs API calls
-
-#### API Integration:
-```typescript
-// src/lib/api.ts
-api.interceptors.request.use((config) => {
-  const clientKey = getClientKeyFromCookie();
-  const apiKey = process.env.NEXT_PUBLIC_BERRYLABS_API_KEY;
-
-  if (apiKey) {
-    config.headers["xi-api-key"] = apiKey;
-  }
-
-  if (clientKey) {
-    config.headers["xi-client-key"] = clientKey;
-  }
-
-  return config;
-});
-```
-
-### 🛡️ Protected Routes
-
-Dashboard access requires both Clerk authentication and a valid client key:
-
-```typescript
-// Dashboard protection logic
-const { user } = useUser();
-const [hasClientKey, setHasClientKey] = useState(false);
-
-useEffect(() => {
-  const checkClientKey = async () => {
-    if (user) {
-      const clientKey = getClientKeyFromCookie();
-      if (!clientKey) {
-        // Redirect to registration or setup
-        router.push('/setup-account');
-      } else {
-        setHasClientKey(true);
-      }
-    }
-  };
-
-  checkClientKey();
-}, [user]);
-```
-
-### 🔧 API Endpoints
-
-#### User Management:
-- `POST /api/users/create` - Create user in local database
-- `POST /api/users/update-client-key` - Update user's client key
-- `POST /api/users/update-berrylabs-data` - Update BerryLabs user data
-
-#### Subscription Management:
-- `POST /api/subscriptions/create` - Create subscription record
-- `POST /api/orders/save` - Save order information
-
-#### External BerryLabs API:
-- `POST /api/reseller/client/register` - Register user only
-- `POST /api/reseller/client` - Register user + create subscription
-- `POST /api/reseller/client/client-key` - Get client key from access_id
-- `GET /api/reseller/client/order/{orderId}/status` - Check payment status
 
 ## 🔧 Prerequisites
 
@@ -472,6 +164,24 @@ NODE_ENV="development"
 # Enable Prisma Debug Logging (optional)
 # DEBUG="prisma:query"
 ```
+
+| Variable | Required | Description | Example |
+|----------|----------|-------------|---------|
+| `PRISMA_DATABASE_URL` | ✅ | **Prisma Postgres connection string** | `prisma://accelerate.prisma-data.net/?api_key=...` |
+| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | ✅ | Clerk frontend authentication key | `pk_test_...` |
+| `CLERK_SECRET_KEY` | ✅ | Clerk backend secret key | `sk_test_...` |
+| `NEXT_PUBLIC_BERRYLABS_API_URL` | ✅ | BerryLabs API base URL | `https://api.berrylabs.io` |
+| `NEXT_PUBLIC_BERRYLABS_API_KEY` | ✅ | Your BerryLabs API key | `your-api-key` |
+| `NODE_ENV` | ❌ | Development environment | `development` |
+
+### 🚨 Security Notes
+
+- **Never commit `.env.local`** to version control
+- **Use different API keys** for development and production
+- **Restrict database access** to necessary IP addresses only
+- **Use strong passwords** for database connections
+- **Rotate API keys regularly** for better security
+
 
 #### 3.1: Get Your BerryLabs API Key
 
@@ -600,24 +310,72 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-### 🔧 Environment Variables Reference
 
-| Variable | Required | Description | Example |
-|----------|----------|-------------|---------|
-| `PRISMA_DATABASE_URL` | ✅ | **Prisma Postgres connection string** | `prisma://accelerate.prisma-data.net/?api_key=...` |
-| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | ✅ | Clerk frontend authentication key | `pk_test_...` |
-| `CLERK_SECRET_KEY` | ✅ | Clerk backend secret key | `sk_test_...` |
-| `NEXT_PUBLIC_BERRYLABS_API_URL` | ✅ | BerryLabs API base URL | `https://api.berrylabs.io` |
-| `NEXT_PUBLIC_BERRYLABS_API_KEY` | ✅ | Your BerryLabs API key | `your-api-key` |
-| `NODE_ENV` | ❌ | Development environment | `development` |
+## 🔐 Authentication & User Flow
+1. **API Headers**: Automatically added to all BerryLabs API calls
 
-### 🚨 Security Notes
+#### API Integration:
+```typescript
+// src/lib/api.ts
+api.interceptors.request.use((config) => {
+  const clientKey = getClientKeyFromCookie();
+  const apiKey = process.env.NEXT_PUBLIC_BERRYLABS_API_KEY;
 
-- **Never commit `.env.local`** to version control
-- **Use different API keys** for development and production
-- **Restrict database access** to necessary IP addresses only
-- **Use strong passwords** for database connections
-- **Rotate API keys regularly** for better security
+  if (apiKey) {
+    config.headers["xi-api-key"] = apiKey;
+  }
+
+  if (clientKey) {
+    config.headers["xi-client-key"] = clientKey;
+  }
+
+  return config;
+});
+```
+
+### 🛡️ Protected Routes
+
+Dashboard access requires both Clerk authentication and a valid client key:
+
+```typescript
+// Dashboard protection logic
+const { user } = useUser();
+const [hasClientKey, setHasClientKey] = useState(false);
+
+useEffect(() => {
+  const checkClientKey = async () => {
+    if (user) {
+      const clientKey = getClientKeyFromCookie();
+      if (!clientKey) {
+        // Redirect to registration or setup
+        router.push('/setup-account');
+      } else {
+        setHasClientKey(true);
+      }
+    }
+  };
+
+  checkClientKey();
+}, [user]);
+```
+
+### 🔧 API Endpoints
+
+#### User Management:
+- `POST /api/users/create` - Create user in local database
+- `POST /api/users/update-client-key` - Update user's client key
+- `POST /api/users/update-berrylabs-data` - Update BerryLabs user data
+
+#### Subscription Management:
+- `POST /api/subscriptions/create` - Create subscription record
+- `POST /api/orders/save` - Save order information
+
+#### External BerryLabs API:
+- `POST /api/reseller/client/register` - Register user only
+- `POST /api/reseller/client` - Register user + create subscription
+- `POST /api/reseller/client/client-key` - Get client key from access_id
+- `GET /api/reseller/client/order/{orderId}/status` - Check payment status
+
 
 ### 🔍 Troubleshooting Setup
 
