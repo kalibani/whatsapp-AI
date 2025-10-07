@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
-import { useUser } from '@clerk/nextjs';
-import { getClientKeyFromCookie, setClientKeyCookie } from '@/lib/auth-utils';
+import { useEffect, useState } from "react";
+import { useUser } from "@clerk/nextjs";
+import { getClientKeyFromCookie, setClientKeyCookie } from "@/lib/auth-utils";
 
 export function useClientKeySetup() {
   const { user, isLoaded } = useUser();
@@ -25,10 +25,10 @@ export function useClientKeySetup() {
 
         // If no client key and user is authenticated, fetch it
         if (user) {
-          const response = await fetch('/api/users/get-client-key', {
-            method: 'POST',
+          const response = await fetch("/api/users/get-client-key", {
+            method: "POST",
             headers: {
-              'Content-Type': 'application/json',
+              "Content-Type": "application/json",
             },
             body: JSON.stringify({ clerkId: user.id }),
           });
@@ -39,17 +39,17 @@ export function useClientKeySetup() {
               setClientKeyCookie(data.clientKey);
               setIsClientKeyReady(true);
             } else {
-              setError('No client key found for user');
+              setError("No client key found for user");
             }
           } else {
-            setError('Failed to fetch client key');
+            setError("Failed to fetch client key");
           }
         } else {
-          setError('User not authenticated');
+          setError("User not authenticated");
         }
       } catch (err) {
-        console.error('Error setting up client key:', err);
-        setError('Failed to setup client key');
+        console.error("Error setting up client key:", err);
+        setError("Failed to setup client key");
       } finally {
         setIsLoading(false);
       }

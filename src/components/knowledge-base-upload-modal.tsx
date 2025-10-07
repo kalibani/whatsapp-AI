@@ -20,6 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { knowledgeBaseApi } from "@/lib/api";
+import QuotaExhaustedModal from "@/components/quota-exhausted-modal";
 
 interface KnowledgeBaseUploadModalProps {
   isOpen: boolean;
@@ -67,6 +68,8 @@ export default function KnowledgeBaseUploadModal({
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [dragActive, setDragActive] = useState(false);
+  const [showQuotaModal, setShowQuotaModal] = useState(false);
+  const [quotaErrorMessage, setQuotaErrorMessage] = useState("");
 
   const resetForm = () => {
     setFile(null);
@@ -166,9 +169,21 @@ export default function KnowledgeBaseUploadModal({
       }
     } catch (err: any) {
       console.error("Upload error:", err);
-      setError(
-        err.response?.data?.error?.message || "Upload failed. Please try again."
-      );
+
+      // Check if it's a 429 quota exhausted error
+      if (err.response?.status === 429) {
+        const errorMsg =
+          err.response?.data?.error?.message ||
+          "Document processing quota exhausted. Please upgrade your plan or wait for quota reset.";
+        setQuotaErrorMessage(errorMsg);
+        setShowQuotaModal(true);
+        handleClose(); // Close the upload modal
+      } else {
+        setError(
+          err.response?.data?.error?.message ||
+            "Upload failed. Please try again."
+        );
+      }
     } finally {
       setIsUploading(false);
     }
@@ -335,6 +350,11 @@ export default function KnowledgeBaseUploadModal({
           </div>
         </div>
       </DialogContent>
+      <QuotaExhaustedModal
+        isOpen={showQuotaModal}
+        onClose={() => setShowQuotaModal(false)}
+        errorMessage={quotaErrorMessage}
+      />
     </Dialog>
   );
 }
