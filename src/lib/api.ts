@@ -148,6 +148,10 @@ export const knowledgeBaseApi = {
       formData.append("agent_id", data.agent_id);
     }
 
+    if (data.id) {
+      formData.append("id", data.id);
+    }
+
     const response = await api.post("/v1/wa/knowledge/upload", formData, {
       headers: {
         "Content-Type": "multipart/form-data",
@@ -162,6 +166,7 @@ export const knowledgeBaseApi = {
     const response = await api.post(
       "/v1/wa/knowledge/upload/text",
       {
+        id: data.id,
         title: data.title,
         content: data.content,
         description: data.description,
@@ -315,7 +320,7 @@ export const clientApi = {
     return response.data;
   },
 
-    // Create subscription
+  // Create subscription
   createSubscriptionRegister: async (subscriptionData: {
     name: string;
     phone: string;
@@ -323,23 +328,22 @@ export const clientApi = {
     package_id: string;
     sub_type: "monthly" | "annual";
   }) => {
-    const response = await api.post(
-      "/api/reseller/client",
-      subscriptionData
-    );
+    const response = await api.post("/api/reseller/client", subscriptionData);
     return response.data;
   },
 
   // Get order status
   getOrderStatus: async (orderId: string) => {
-    const response = await api.get(`/api/reseller/client/order/${orderId}/status`);
+    const response = await api.get(
+      `/api/reseller/client/order/${orderId}/status`
+    );
     return response.data;
   },
 
   // Get client key from access_id
   getClientKey: async (accessId: string) => {
     const response = await api.post("/api/reseller/client/client-key", {
-      access_id: accessId
+      access_id: accessId,
     });
     return response.data;
   },

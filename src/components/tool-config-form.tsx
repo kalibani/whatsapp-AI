@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Check, X, ExternalLink, Save } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -325,14 +326,14 @@ export default function ToolConfigForm({
 
   const handleSave = () => {
     if (!toolName.trim() || !toolUrl.trim() || !toolDescription.trim()) {
-      alert("Please fill in all required fields");
+      toast.error("Please fill in all required fields");
       return;
     }
 
     // Validate tool name format
     const toolNameRegex = /^[a-zA-Z0-9_-]{1,64}$/;
     if (!toolNameRegex.test(toolName)) {
-      alert(
+      toast.error(
         "Tool name must be 1-64 characters and can only contain letters, numbers, underscores and hyphens"
       );
       return;
@@ -342,22 +343,19 @@ export default function ToolConfigForm({
     try {
       new URL(toolUrl);
     } catch (e) {
-      alert("Please enter a valid URL");
+      toast.error("Please enter a valid URL");
       return;
     }
 
-    // Build query params schema
     let queryParamsSchema;
     if (Object.keys(toolQueryParams).length > 0) {
       const properties = Object.entries(toolQueryParams).reduce(
         (acc, [key, value]) => {
-          return {
-            ...acc,
-            [key]: {
-              type: (value as any).type || "string",
-              description: (value as any).description || "",
-            },
+          const cleanedValue = {
+            type: (value as any).type || "string",
+            description: (value as any).description || `Parameter ${key}`,
           };
+          return { ...acc, [key]: cleanedValue };
         },
         {}
       );
@@ -372,49 +370,45 @@ export default function ToolConfigForm({
       };
     }
 
+    const headers = { ...toolHeaders };
+
     // Build body params schema
     let bodyParamsSchema;
     if (
-      ["POST", "PUT", "PATCH"].includes(toolMethod) &&
+      (toolMethod === "POST" ||
+        toolMethod === "PATCH" ||
+        toolMethod === "PUT") &&
       Object.keys(toolBodyParams).length > 0
     ) {
-      const properties = Object.entries(toolBodyParams).reduce(
-        (acc, [key, value]) => {
-          return {
-            ...acc,
-            [key]: {
-              type: (value as any).type || "string",
-              description: (value as any).description || "",
-            },
-          };
-        },
-        {}
-      );
-
-      const required = Object.entries(toolBodyParams)
-        .filter(([_, value]) => (value as any).required)
-        .map(([key]) => key);
-
       bodyParamsSchema = {
         type: "object" as const,
-        description: `Request body for ${toolName}`,
-        properties,
-        required,
+        description: "Request body for " + toolName,
+        properties: Object.entries(toolBodyParams).reduce(
+          (acc, [key, value]) => ({
+            ...acc,
+            [key]: {
+              type: (value as any).type,
+              description: (value as any).description || `Body parameter ${key}`,
+            },
+          }),
+          {}
+        ),
+        required: Object.entries(toolBodyParams)
+          .filter(([_, value]) => (value as any).required)
+          .map(([key]) => key),
       };
     }
 
     const toolData: Tool = {
-      id: editingToolId || generateToolId(),
+      id: editingToolId || crypto.randomUUID(),
       type: "webhook",
       name: toolName,
       description: toolDescription,
       api_schema: {
         url: toolUrl,
         method: toolMethod,
-        request_headers:
-          Object.keys(toolHeaders).length > 0 ? toolHeaders : undefined,
-        path_params_schema:
-          Object.keys(toolPathParams).length > 0 ? toolPathParams : undefined,
+        request_headers: Object.keys(headers).length > 0 ? headers : undefined,
+        path_params_schema: toolPathParams,
         query_params_schema: queryParamsSchema,
         request_body_schema: bodyParamsSchema,
       },

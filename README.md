@@ -2,6 +2,8 @@
 
 A comprehensive Next.js application for managing WhatsApp AI agents via the [BerryLabs API](https://docs.berrylabs.io/docs/api/wa-agent/overview). This platform provides a complete dashboard for creating, configuring, and managing intelligent WhatsApp chatbots with advanced features like knowledge bases, file references, webhook integrations, and scheduling.
 
+🚀 **[Try Live Demo](https://whatsapp-ai-six.vercel.app/)** - Experience the platform in action!
+
 ## 🚀 Features
 
 ### 📱 Agent Management
@@ -375,32 +377,13 @@ useEffect(() => {
 - `POST /api/reseller/client/client-key` - Get client key from access_id
 - `GET /api/reseller/client/order/{orderId}/status` - Check payment status
 
-### 🎯 Environment Configuration
-
-```bash
-# Clerk Configuration
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_...
-CLERK_SECRET_KEY=sk_test_...
-NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in
-NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up
-NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL=/dashboard
-NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL=/dashboard
-
-# Database
-DATABASE_URL="postgresql://..."
-
-# BerryLabs API
-NEXT_PUBLIC_BERRYLABS_API_URL=https://api.berrylabs.io
-NEXT_PUBLIC_BERRYLABS_API_KEY=your-api-key-here
-```
-
 ## 🔧 Prerequisites
 
 - Node.js 18.0 or higher
 - pnpm (recommended) or npm
 - BerryLabs account and API key
 - Clerk account for authentication
-- PostgreSQL database (for Prisma)
+- Prisma Postgres account (get from console.prisma.io)
 
 ## 📋 Setup Instructions
 
@@ -419,38 +402,22 @@ npm install
 
 ### Step 2: Database Setup
 
-This application uses **PostgreSQL** with **Prisma ORM** for local data management. **PostgreSQL is strongly recommended** for optimal compatibility and performance.
+This application uses **Prisma Postgres** for database management.
 
-#### 2.1: Install and Setup PostgreSQL
+#### 2.1: Setup Prisma Postgres
 
-**Option A: Using Docker (Recommended)**
+1. **Sign up for Prisma Data Platform**
+   - Go to [console.prisma.io](https://console.prisma.io)
+   - Create a free account or log in
 
-```bash
-# Run PostgreSQL in Docker
-docker run --name whatsapp-ai-db \
-  -e POSTGRES_PASSWORD=your_password \
-  -e POSTGRES_USER=your_username \
-  -e POSTGRES_DB=whatsapp_ai \
-  -p 5432:5432 \
-  -d postgres:15
-```
+2. **Create a New Project**
+   - Click "New Project" in the Prisma Console
+   - Select "Prisma Postgres" as your database provider
+   - Choose your preferred region
 
-**Option B: Local PostgreSQL Installation**
-
-- **macOS**: `brew install postgresql`
-- **Ubuntu**: `sudo apt-get install postgresql postgresql-contrib`
-- **Windows**: Download from [postgresql.org](https://www.postgresql.org/download/)
-
-#### 2.2: Database Connection
-
-Create your database and note the connection details:
-
-```sql
--- Connect to PostgreSQL and create database
-CREATE DATABASE whatsapp_ai;
-CREATE USER your_username WITH PASSWORD 'your_password';
-GRANT ALL PRIVILEGES ON DATABASE whatsapp_ai TO your_username;
-```
+3. **Get Database Connection String**
+   - After creating the project, Prisma will provide your connection string
+   - Copy the `DATABASE_URL` - it will look like: `prisma://accelerate.prisma-data.net/?api_key=...`
 
 ### Step 3: Environment Configuration
 
@@ -461,17 +428,9 @@ Create a `.env.local` file in the project root directory and configure all requi
 # DATABASE CONFIGURATION
 # =================================
 
-# Prisma Database URL - ALWAYS use this variable name
-# Format: postgresql://username:password@localhost:5432/database_name
-PRISMA_DATABASE_URL="postgresql://your_username:your_password@localhost:5432/whatsapp_ai"
-
-# Alternative formats for cloud databases:
-# Supabase: PRISMA_DATABASE_URL="postgresql://user:pass@host:port/dbname?sslmode=require"
-# Railway: PRISMA_DATABASE_URL="postgresql://user:pass@host:port/dbname"
-# PlanetScale: PRISMA_DATABASE_URL="mysql://user:pass@host:port/dbname?sslaccept=strict"
-
-# Note: This application is optimized for PostgreSQL
-# We recommend using PostgreSQL for the best compatibility
+# Prisma Postgres Database URL - Get this from console.prisma.io
+# Format: prisma://accelerate.prisma-data.net/?api_key=your_api_key
+PRISMA_DATABASE_URL="prisma://accelerate.prisma-data.net/?api_key=your_prisma_api_key"
 
 # =================================
 # CLERK AUTHENTICATION
@@ -552,13 +511,15 @@ NODE_ENV="development"
 
 Once your environment variables are configured, set up the database schema:
 
+#### 4.1: For Development Environment
+
 ```bash
 # Generate Prisma client
 pnpm prisma generate
 # or
 npx prisma generate
 
-# Run database migrations to create tables
+# Run database migrations to create tables (development only)
 pnpm prisma migrate dev --name init
 # or
 npx prisma migrate dev --name init
@@ -574,7 +535,24 @@ pnpm prisma studio
 npx prisma studio
 ```
 
-#### 4.1: Understanding the Database Schema
+#### 4.2: For Production Deployment
+
+```bash
+# Generate Prisma client
+pnpm prisma generate
+
+# Deploy migrations to production (use this in production, NOT migrate dev)
+pnpm prisma migrate deploy
+# or
+npx prisma migrate deploy
+```
+
+**Important**:
+- Use `prisma migrate dev` only in development
+- Use `prisma migrate deploy` for production deployments
+- Never run `prisma migrate dev` in production as it may cause data loss
+
+#### 4.3: Understanding the Database Schema
 
 The application creates these main tables:
 
@@ -583,19 +561,16 @@ The application creates these main tables:
 - **subscriptions**: User subscription records
 - **orders**: Payment and order tracking
 
-#### 4.2: Database Migration Commands
+#### 4.4: Additional Migration Commands
 
 ```bash
 # View migration status
 pnpm prisma migrate status
 
-# Reset database (WARNING: deletes all data)
+# Reset database (WARNING: deletes all data - development only)
 pnpm prisma migrate reset
 
-# Deploy migrations to production
-pnpm prisma migrate deploy
-
-# Create a new migration after schema changes
+# Create a new migration after schema changes (development only)
 pnpm prisma migrate dev --name your-migration-name
 ```
 
@@ -629,7 +604,7 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 | Variable | Required | Description | Example |
 |----------|----------|-------------|---------|
-| `PRISMA_DATABASE_URL` | ✅ | **Primary database URL (PostgreSQL recommended)** | `postgresql://user:pass@localhost:5432/db` |
+| `PRISMA_DATABASE_URL` | ✅ | **Prisma Postgres connection string** | `prisma://accelerate.prisma-data.net/?api_key=...` |
 | `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | ✅ | Clerk frontend authentication key | `pk_test_...` |
 | `CLERK_SECRET_KEY` | ✅ | Clerk backend secret key | `sk_test_...` |
 | `NEXT_PUBLIC_BERRYLABS_API_URL` | ✅ | BerryLabs API base URL | `https://api.berrylabs.io` |
@@ -680,6 +655,58 @@ pnpm install
 # Regenerate Prisma client
 pnpm prisma generate
 ```
+
+## 📄 License & Usage Terms
+
+### 🆓 Free & Open Source
+
+This project is **free and open source** for personal and internal business use. You can:
+
+- Use it for your own WhatsApp AI agents
+- Modify the code to suit your needs
+- Deploy it for your organization's internal use
+
+### 🤝 Partnership & Reseller Program
+
+If you plan to **resell this solution** or **manage multiple clients**, you'll need:
+
+**📋 Complete Partnership Information**: [BerryLabs Partnership Program](https://berrylabs.io/mitra)
+
+#### Reseller Requirements
+
+- **Reseller API Key**: Required for managing multiple client accounts
+- **Client Key**: Needed for end-client management via BerryLabs Partnership Program
+- **Authentication**: Follow the [Reseller Authentication Guide](https://docs.berrylabs.io/docs/api/wa-agent/authentication#reseller-authentication)
+
+#### Partnership Benefits
+
+- **Attractive Revenue Sharing**: Up to 60% revenue share for qualified resellers
+- Access to reseller API endpoints
+- Client management capabilities
+- Partner support and resources
+- Comprehensive partner training and onboarding
+
+### 🏷️ Branding Requirements
+
+- **Keep BerryLabs Branding**: The "Powered by BerryLabs" branding must remain visible
+- **Attribution Required**: Do not remove existing BerryLabs brand elements
+- **Whitelabel Options**: Available for qualified partners
+
+#### Whitelabel Program
+
+For custom branding and whitelabel solutions:
+
+- **Contact**: team@berrylabs.io
+- **Subject**: Partnership Whitelabel Program
+- **Include**: Your use case and partnership requirements
+
+### ⚖️ Usage Summary
+
+- ✅ **Free Use**: Personal and internal business use
+- ✅ **Modifications**: Code customization allowed
+- ❌ **Reselling**: Requires partnership agreement and reseller keys
+- ❌ **Brand Removal**: BerryLabs attribution must remain
+- 💼 **Commercial**: Whitelabel options available through partnership
 
 ## 🎯 Usage Guide
 
@@ -800,57 +827,6 @@ src/
 4. Test thoroughly
 5. Submit a pull request
 
-## 📄 License & Usage Terms
-
-### 🆓 Free & Open Source
-
-This project is **free and open source** for personal and internal business use. You can:
-
-- Use it for your own WhatsApp AI agents
-- Modify the code to suit your needs
-- Deploy it for your organization's internal use
-
-### 🤝 Partnership & Reseller Program
-
-If you plan to **resell this solution** or **manage multiple clients**, you'll need:
-
-**📋 Complete Partnership Information**: [BerryLabs Partnership Program](https://berrylabs.io/mitra)
-
-#### Reseller Requirements
-
-- **Reseller API Key**: Required for managing multiple client accounts
-- **Client Key**: Needed for end-client management via BerryLabs Partnership Program
-- **Authentication**: Follow the [Reseller Authentication Guide](https://docs.berrylabs.io/docs/api/wa-agent/authentication#reseller-authentication)
-
-#### Partnership Benefits
-
-- **Attractive Revenue Sharing**: Up to 60% revenue share for qualified resellers
-- Access to reseller API endpoints
-- Client management capabilities
-- Partner support and resources
-- Comprehensive partner training and onboarding
-
-### 🏷️ Branding Requirements
-
-- **Keep BerryLabs Branding**: The "Powered by BerryLabs" branding must remain visible
-- **Attribution Required**: Do not remove existing BerryLabs brand elements
-- **Whitelabel Options**: Available for qualified partners
-
-#### Whitelabel Program
-
-For custom branding and whitelabel solutions:
-
-- **Contact**: team@berrylabs.io
-- **Subject**: Partnership Whitelabel Program
-- **Include**: Your use case and partnership requirements
-
-### ⚖️ Usage Summary
-
-- ✅ **Free Use**: Personal and internal business use
-- ✅ **Modifications**: Code customization allowed
-- ❌ **Reselling**: Requires partnership agreement and reseller keys
-- ❌ **Brand Removal**: BerryLabs attribution must remain
-- 💼 **Commercial**: Whitelabel options available through partnership
 
 ## 🆘 Support
 

@@ -77,6 +77,7 @@ export default function KnowledgeBaseTextModal({
       setError(null);
 
       const uploadData = {
+        id: crypto.randomUUID(),
         title: title.trim(),
         content: content.trim(),
         description: description.trim() || undefined,

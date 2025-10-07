@@ -63,6 +63,7 @@ export interface DeleteDocumentResponse {
 }
 
 export interface UploadDocumentRequest {
+  id: string;
   file: File;
   title: string;
   description?: string;
@@ -71,6 +72,7 @@ export interface UploadDocumentRequest {
 }
 
 export interface UploadTextRequest {
+  id: string;
   title: string;
   content: string;
   description?: string;
