@@ -38,6 +38,7 @@ import { toast } from "sonner";
 import { Agent } from "@/types/agent";
 import { WhatsAppAccount, StatusUpdate } from "@/types/whatsapp-account";
 import { whatsappAccountApi } from "@/lib/api";
+import QuotaExhaustedModal from "@/components/quota-exhausted-modal";
 
 interface WhatsAppTabProps {
   agent: Agent;
@@ -75,6 +76,8 @@ export default function WhatsAppTab({
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [accountToDelete, setAccountToDelete] =
     useState<WhatsAppAccount | null>(null);
+  const [showQuotaModal, setShowQuotaModal] = useState(false);
+  const [quotaErrorMessage, setQuotaErrorMessage] = useState("");
 
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
@@ -385,9 +388,19 @@ export default function WhatsAppTab({
       }
     } catch (error: any) {
       console.error("Error requesting QR code:", error);
-      setError(
-        error.response?.data?.error?.message || "Failed to generate QR code"
-      );
+
+      // Check if it's a 429 quota exhausted error
+      if (error.response?.status === 429) {
+        const errorMsg =
+          error.response?.data?.error?.message ||
+          "QR code generation quota exhausted. Please upgrade your plan or wait for quota reset.";
+        setQuotaErrorMessage(errorMsg);
+        setShowQuotaModal(true);
+      } else {
+        setError(
+          error.response?.data?.error?.message || "Failed to generate QR code"
+        );
+      }
       setIsConnecting(false);
     }
   };
@@ -434,9 +447,19 @@ export default function WhatsAppTab({
       }
     } catch (error: any) {
       console.error("Error reconnecting account:", error);
-      setError(
-        error.response?.data?.error?.message || "Failed to reconnect account"
-      );
+
+      // Check if it's a 429 quota exhausted error
+      if (error.response?.status === 429) {
+        const errorMsg =
+          error.response?.data?.error?.message ||
+          "Reconnection quota exhausted. Please upgrade your plan or wait for quota reset.";
+        setQuotaErrorMessage(errorMsg);
+        setShowQuotaModal(true);
+      } else {
+        setError(
+          error.response?.data?.error?.message || "Failed to reconnect account"
+        );
+      }
       setIsReconnecting(false);
     }
   };
@@ -1101,6 +1124,13 @@ export default function WhatsAppTab({
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Quota Exhausted Modal */}
+      <QuotaExhaustedModal
+        isOpen={showQuotaModal}
+        onClose={() => setShowQuotaModal(false)}
+        errorMessage={quotaErrorMessage}
+      />
     </div>
   );
 }
