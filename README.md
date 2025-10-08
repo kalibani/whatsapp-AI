@@ -185,23 +185,171 @@ NODE_ENV="development"
 
 #### 3.1: Get Your BerryLabs API Key
 
-1. **Register an Account**
+BerryLabs supports two types of authentication based on your account type:
 
-   - Go to [app.berrylabs.io/auth/register](https://app.berrylabs.io/auth/register)
-   - Complete the registration process
-   - Verify your email address if required
+- **Standard Users**: Use `xi-api-key` only (for personal use)
+- **Reseller Partners**: Use both `xi-api-key` and `xi-client-key` (for managing client accounts)
 
-2. **Access API Keys**
+Choose the appropriate guide below based on your use case:
 
-   - Log in to the BerryLabs platform
-   - Click on your user avatar at the bottom left
-   - Select "API Keys" from the modal options
+---
 
-3. **Generate API Key**
-   - Click "Generate API Key"
-   - Give your key a descriptive name (e.g., "WhatsApp AI Development")
-   - **Important**: Copy the generated API key immediately and add it to your `.env.local`
-   - Store it securely as it won't be shown again
+##### 📌 For Standard Users (Personal Use)
+
+If you're using BerryLabs for your own WhatsApp AI agents, follow these steps:
+
+**Step 1: Register an Account**
+
+1. Go to [app.berrylabs.io/auth/register](https://app.berrylabs.io/auth/register)
+2. Complete the registration process with your details
+3. Verify your email address if required
+
+**Step 2: Access API Keys**
+
+1. Log in to the BerryLabs platform at [app.berrylabs.io](https://app.berrylabs.io/auth/login)
+2. Click on your **user avatar** at the **bottom left** of the interface
+3. A modal will appear - select **"API Keys"** from the options
+
+**Step 3: Generate API Key**
+
+1. In the API Keys section, click **"Generate API Key"**
+2. Give your API key a descriptive name (e.g., "Production API", "WhatsApp AI Development")
+3. **Important**: Copy the generated API key **immediately**
+4. Add it to your `.env.local` file as `NEXT_PUBLIC_BERRYLABS_API_KEY`
+5. Store it securely as it won't be shown again
+
+**⚠️ Important Notes:**
+
+- Save your API key immediately after generation
+- The key will only be displayed once for security reasons
+- If you lose your key, you'll need to generate a new one
+
+**Example `.env.local` configuration:**
+
+```bash
+NEXT_PUBLIC_BERRYLABS_API_KEY="your-standard-api-key-here"
+```
+
+📚 **Learn More**: [Standard User Authentication Guide](https://docs.berrylabs.io/docs/api/wa-agent/authentication/#standard-user-authentication)
+
+---
+
+##### 🤝 For Reseller Partners (Managing Client Accounts)
+
+If you're a reseller managing multiple client accounts or building a platform to resell BerryLabs services, follow these steps:
+
+**Overview**
+
+Reseller authentication enables you to manage multiple end clients through a single reseller account. There are two main use cases:
+
+1. **Client Registration & Subscription Management** - Only requires `xi-api-key`
+2. **Managing Existing Client Resources** - Requires both `xi-api-key` and `xi-client-key`
+
+**Step 1: Apply for Reseller Status**
+
+1. Visit the [BerryLabs Partner Program Application](https://berrylabs.io/mitra/daftar)
+2. Fill out the partnership application form (choose Business or Individual partnership)
+3. Submit your application and complete the verification process
+4. Wait for approval confirmation from the BerryLabs team
+5. You'll receive notification when your reseller status is approved
+
+**Step 2: Access Reseller Dashboard**
+
+1. Log in to [app.berrylabs.io](https://app.berrylabs.io)
+2. Click on the **navbar** to find the **"Reseller Dashboard"** switcher
+3. Switch to your approved **Reseller Dashboard**
+4. You'll be redirected to the reseller-specific interface
+
+**Step 3: Get Your Reseller API Key**
+
+1. In the Reseller Dashboard, click on the **"Settings"** menu
+2. Select **"API Keys"** from the submenu options
+3. Your reseller API key will be displayed (or generate one if needed)
+4. Copy the reseller API key
+5. Add it to your `.env.local` file as `NEXT_PUBLIC_BERRYLABS_API_KEY`
+
+**Step 4: Understanding Client Keys**
+
+Reseller API authentication varies by endpoint type:
+
+**For Registration/Subscription Endpoints** (No client key needed):
+
+- `POST /api/reseller/client/register`
+- `POST /api/reseller/client`
+- `POST /api/reseller/client/subscription`
+- `POST /api/reseller/client/client-key`
+- `GET /api/reseller/client/packages`
+- `GET /api/reseller/client/order/{orderId}/status`
+
+**For Resource Management Endpoints** (Client key required):
+
+- All agent management endpoints (`/v1/wa/agents/*`)
+- All WhatsApp account endpoints (`/v1/wa/accounts/*`)
+- All knowledge base endpoints (`/v1/wa/knowledge/*`)
+
+**Example `.env.local` configuration:**
+
+```bash
+# Your Reseller API Key (for all operations)
+NEXT_PUBLIC_BERRYLABS_API_KEY="your-reseller-api-key-here"
+
+# Client keys are obtained dynamically per client and stored in cookies/database
+# This app automatically manages client keys through the authentication flow
+```
+
+**How This App Handles Reseller Authentication:**
+
+This application automatically handles both reseller authentication scenarios:
+
+1. **During Registration/Subscription**: Uses only the reseller API key
+2. **During Resource Management**: Automatically includes the client key from cookies when available
+3. **Client Key Storage**: Client keys are stored in cookies after successful payment and retrieved automatically
+
+**Getting Client Keys After Registration:**
+
+After a client completes payment through your reseller account:
+
+1. Use the `access_id` from the payment callback
+2. Call `POST /api/reseller/client/client-key` with the `access_id`
+3. Store the returned `client_key` securely in your system
+4. This app stores it in cookies automatically using `setClientKeyCookie()`
+
+**🔑 Important Reseller Notes:**
+
+- Reseller API keys have different permissions than standard user keys
+- Client keys are required for managing specific client resources
+- Follow a separate application-based approval process (not self-service)
+- Each client you register will have their own unique `xi-client-key`
+
+📚 **Learn More**: [Reseller Authentication Guide](https://docs.berrylabs.io/docs/api/wa-agent/authentication/#reseller-authentication)
+
+---
+
+##### 🔐 Authentication Flow in This Application
+
+This application is designed to work seamlessly for both user types:
+
+**For Standard Users:**
+
+- API key is set in `.env.local` and used for all requests
+- No client key management needed
+- Direct access to personal agents and resources
+
+**For Reseller Partners:**
+
+- Reseller API key is set in `.env.local`
+- Client keys are managed automatically through the authentication flow
+- The app detects missing client keys and shows helpful banners with partnership information
+- The subscription page shows reseller partnership opportunities for unauthorized users
+
+**Automatic Client Key Management:**
+
+The application includes built-in client key management:
+
+- `getClientKeyFromCookie()` - Retrieves stored client key
+- `setClientKeyCookie()` - Stores client key after successful payment
+- `removeClientKeyCookie()` - Clears client key on logout
+- Axios interceptors automatically include client keys in API requests
 
 #### 3.2: Setup Clerk Authentication
 
