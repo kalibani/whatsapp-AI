@@ -1,7 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { Check } from "lucide-react";
+import {
+  Check,
+  AlertCircle,
+  ExternalLink,
+  TrendingUp,
+  Link,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -21,8 +27,10 @@ import {
 import { useRouter } from "next/navigation";
 import { useAuth } from "@clerk/nextjs";
 
+import { getClientKeyFromCookie } from "@/lib/auth-utils";
+
 export function PricingSection() {
-  const { packages, loading, error } = usePackages();
+  const { packages, loading, error, errorStatus } = usePackages();
   const { subscription: currentSubscription, loading: subscriptionLoading } =
     useCurrentSubscription();
   const { isSignedIn, isLoaded } = useAuth();
@@ -87,11 +95,134 @@ export function PricingSection() {
     );
   }
 
+  const clientKey = getClientKeyFromCookie();
+
   if (error) {
+    // Check if it's a 401 error (reseller access required)
+    const is401Error = errorStatus === 401 && !clientKey;
+
     return (
       <section className="py-20 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto text-center">
-          <p className="text-red-600">Error loading pricing: {error}</p>
+        <div className="max-w-3xl mx-auto">
+          <Card
+            className={
+              is401Error
+                ? "border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50"
+                : "border-red-200 bg-red-50"
+            }
+          >
+            <CardHeader>
+              <div className="flex items-center justify-center mb-4">
+                {is401Error ? (
+                  <div className="h-16 w-16 rounded-full bg-blue-100 flex items-center justify-center">
+                    <TrendingUp className="h-8 w-8 text-blue-600" />
+                  </div>
+                ) : (
+                  <div className="h-16 w-16 rounded-full bg-red-100 flex items-center justify-center">
+                    <AlertCircle className="h-8 w-8 text-red-600" />
+                  </div>
+                )}
+              </div>
+              <CardTitle
+                className={`text-center text-2xl ${
+                  is401Error ? "text-blue-900" : "text-red-900"
+                }`}
+              >
+                {is401Error
+                  ? "Reseller Access Required"
+                  : "Error Loading Pricing"}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {is401Error ? (
+                <div className="space-y-4 text-center">
+                  <p className="text-blue-800">
+                    This subscription page is exclusively for BerryLabs Reseller
+                    Partners. Join our Partner Program to access reseller
+                    pricing and features.
+                  </p>
+                  <div className="bg-white border border-blue-200 rounded-lg p-4 text-left">
+                    <h4 className="font-semibold text-blue-900 mb-2">
+                      💰 Benefits of Becoming a Reseller Partner:
+                    </h4>
+                    <ul className="space-y-2 text-sm text-blue-700">
+                      <li className="flex items-start">
+                        <Check className="h-4 w-4 text-blue-600 mr-2 mt-0.5 flex-shrink-0" />
+                        <span>
+                          Access to special reseller pricing and margins
+                        </span>
+                      </li>
+                      <li className="flex items-start">
+                        <Check className="h-4 w-4 text-blue-600 mr-2 mt-0.5 flex-shrink-0" />
+                        <span>Earn commissions on client subscriptions</span>
+                      </li>
+                      <li className="flex items-start">
+                        <Check className="h-4 w-4 text-blue-600 mr-2 mt-0.5 flex-shrink-0" />
+                        <span>
+                          White-label AI agent solutions for your clients
+                        </span>
+                      </li>
+                      <li className="flex items-start">
+                        <Check className="h-4 w-4 text-blue-600 mr-2 mt-0.5 flex-shrink-0" />
+                        <span>Priority support and technical resources</span>
+                      </li>
+                      <li className="flex items-start">
+                        <Check className="h-4 w-4 text-blue-600 mr-2 mt-0.5 flex-shrink-0" />
+                        <span>Marketing and sales enablement tools</span>
+                      </li>
+                    </ul>
+                  </div>
+                  <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
+                    <Button
+                      size="lg"
+                      onClick={() =>
+                        window.open(
+                          "https://berrylabs.io/mitra/daftar",
+                          "_blank"
+                        )
+                      }
+                      className="bg-blue-600 hover:bg-blue-700 text-white"
+                    >
+                      <ExternalLink className="w-4 h-4 mr-2" />
+                      Apply for Partnership
+                    </Button>
+                    <Button
+                      size="lg"
+                      variant="outline"
+                      onClick={() =>
+                        window.open(
+                          "https://docs.berrylabs.io/docs/api/wa-agent/authentication#reseller-authentication",
+                          "_blank"
+                        )
+                      }
+                      className="border-blue-300 text-blue-700 hover:bg-blue-100"
+                    >
+                      <Link className="w-4 h-4 mr-2" />
+                      Learn More
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4 text-center">
+                  <p className="text-red-700">Error loading pricing: {error}</p>
+                  <div className="flex gap-3 justify-center">
+                    <Button
+                      variant="outline"
+                      onClick={() => window.location.reload()}
+                    >
+                      Try Again
+                    </Button>
+                    <Button
+                      variant="default"
+                      onClick={() => router.push("/dashboard")}
+                    >
+                      Back to Dashboard
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
       </section>
     );

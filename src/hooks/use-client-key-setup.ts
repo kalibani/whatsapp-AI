@@ -15,6 +15,7 @@ export function useClientKeySetup() {
       try {
         // Check if client key already exists in cookies
         const existingClientKey = getClientKeyFromCookie();
+        console.log("existingClientKey", existingClientKey);
 
         if (existingClientKey) {
           // Client key already exists

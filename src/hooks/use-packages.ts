@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { clientApi } from '@/lib/api';
+import { useState, useEffect } from "react";
+import { clientApi } from "@/lib/api";
 
 export interface Package {
   package_id: string;
@@ -23,18 +23,20 @@ export function usePackages() {
   const [packages, setPackages] = useState<Package[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [errorStatus, setErrorStatus] = useState<number | null>(null);
 
   useEffect(() => {
     async function fetchPackages() {
       try {
         const data: ApiResponse = await clientApi.getPackages();
-        if (data.status === 'success' && data.data?.data) {
+        if (data.status === "success" && data.data?.data) {
           setPackages(data.data.data);
         } else {
-          throw new Error('Invalid API response format');
+          throw new Error("Invalid API response format");
         }
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'An error occurred');
+      } catch (err: any) {
+        setError(err instanceof Error ? err.message : "An error occurred");
+        setErrorStatus(err.response?.status || null);
       } finally {
         setLoading(false);
       }
@@ -43,5 +45,5 @@ export function usePackages() {
     fetchPackages();
   }, []);
 
-  return { packages, loading, error };
+  return { packages, loading, error, errorStatus };
 }
