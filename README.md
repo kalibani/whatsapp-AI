@@ -2,7 +2,7 @@
 
 A comprehensive Next.js application for managing WhatsApp AI agents via the [BerryLabs API](https://docs.berrylabs.io/docs/api/wa-agent/overview). This platform provides a complete dashboard for creating, configuring, and managing intelligent WhatsApp chatbots with advanced features like knowledge bases, file references, webhook integrations, and scheduling.
 
-🚀 **[Try Live Demo](https://whatsapp-ai-six.vercel.app/)** - Experience the platform in action!
+🚀 **[Try Live Demo](https://reseller.berrylabs.io/)** - Experience the platform in action!
 
 ## 🚀 Features
 
